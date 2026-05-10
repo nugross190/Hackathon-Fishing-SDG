@@ -21,11 +21,59 @@
                 <h1 class="text-2xl font-bold tracking-tight">Knovera — SDG 14</h1>
                 <p class="text-blue-200 text-xs">Simulasi Bio-Ekonomi Perikanan (Skala Bulanan)</p>
             </div>
-            <div class="text-right">
+            <div class="text-right flex items-center gap-2">
                 <span id="timeBadge" class="px-3 py-1 rounded-full text-sm font-bold bg-blue-800 border border-blue-400">Tahun 0 Bulan 1</span>
+                <button id="btnAdmin" class="px-2 py-1 rounded text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white border border-amber-300" title="Toggle admin tuning panel">🔧 Admin</button>
             </div>
         </div>
     </header>
+
+    <section id="adminPanel" class="hidden bg-amber-50 border-y-2 border-amber-300">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex justify-between items-center mb-2">
+                <div>
+                    <h2 class="text-sm font-bold text-amber-900">🔧 Admin Tuning Panel</h2>
+                    <p class="text-[10px] text-amber-700">Edit parameters lalu klik <b>Apply &amp; Reset Sim</b>. Perubahan scenario hanya berlaku untuk skenario aktif.</p>
+                </div>
+                <button id="btnAdminClose" class="text-amber-800 hover:text-amber-900 text-lg font-bold">✕</button>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                <fieldset class="bg-white rounded p-2 border border-amber-200">
+                    <legend class="font-bold uppercase text-[10px] text-amber-800 px-1">Populasi (Schaefer)</legend>
+                    <label class="block mt-1">r (annual growth)<input id="adm_r" type="number" step="0.01" class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">K (ton, daya dukung)<input id="adm_K" type="number" step="1000" class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">q (catchability)<input id="adm_q" type="number" step="0.000001" class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                </fieldset>
+                <fieldset class="bg-white rounded p-2 border border-amber-200">
+                    <legend class="font-bold uppercase text-[10px] text-amber-800 px-1">Bio-Ekonomi</legend>
+                    <label class="block mt-1">P (Rp/ton)<input id="adm_P" type="number" step="500" class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">c (Rp per unit effort)<input id="adm_c" type="number" step="10000" class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">δ (discount, annual)<input id="adm_delta" type="number" step="0.01" class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                </fieldset>
+                <fieldset class="bg-white rounded p-2 border border-amber-200">
+                    <legend class="font-bold uppercase text-[10px] text-amber-800 px-1">Armada</legend>
+                    <label class="block mt-1">Ship cost (Rp)<input id="adm_shipCost" type="number" step="1000000" class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">Ship sell (Rp)<input id="adm_shipSell" type="number" step="1000000" class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">Maintenance/yr (Rp)<input id="adm_shipMaint" type="number" step="1000000" class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">Effort/ship/yr<input id="adm_effortPerShip" type="number" step="10" class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">Max fleet<input id="adm_maxFleet" type="number" step="1" class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                </fieldset>
+                <fieldset class="bg-white rounded p-2 border border-amber-200">
+                    <legend class="font-bold uppercase text-[10px] text-amber-800 px-1">Skenario &amp; Welfare</legend>
+                    <label class="block mt-1">Init fleet<input id="adm_initFleet" type="number" step="1" class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">Init budget (Rp)<input id="adm_initBudget" type="number" step="10000000" class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">Start N/K (0–1)<input id="adm_startN" type="number" step="0.05" min="0" max="1" class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">UMR/bln (Rp)<input id="adm_umr" type="number" step="100000" class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">Mgmt cut (0–1)<input id="adm_mgmt" type="number" step="0.01" min="0" max="1" class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                </fieldset>
+            </div>
+            <div class="flex gap-2 mt-3">
+                <button id="btnAdminApply" class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-4 py-2 rounded">Apply &amp; Reset Sim</button>
+                <button id="btnAdminDefaults" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs px-4 py-2 rounded">Restore Defaults</button>
+                <span id="adminStatus" class="text-[10px] text-amber-700 self-center"></span>
+            </div>
+        </div>
+    </section>
 
     <main class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -161,19 +209,22 @@
 
     <script>
         // GLOBAL CONSTRAINTS & ECONOMIC CONSTANTS (TASK 1)
-        const UMR_MONTHLY = 2500000;   // Rp 2.5 Juta
-        const MGMT_CUT    = 0.10;      // 10% untuk modal pelabuhan
-        const J_FISHERMEN = 50;        // Ukuran komunitas nelayan
-        const MAX_FLEET   = 200;       // Armada perahu kecil
+        const UMR_MONTHLY_DEFAULT = 2500000;
+        const J_FISHERMEN = 50;        // Ukuran komunitas nelayan (tetap)
 
-        const SHIP_COST = 120000000;   // Perahu kecil — Rp 120 Juta
-        const SHIP_SELL = 40000000;    // Rp 40 Juta
-        const SHIP_MAINT = 18000000;   // Tahunan — Rp 18 Juta/tahun
+        // Mutable runtime parameters (admin-tunable)
+        let UMR_MONTHLY = UMR_MONTHLY_DEFAULT;
+        let MGMT_CUT    = 0.10;        // 10% untuk modal pelabuhan
+        let MAX_FLEET   = 200;         // Armada perahu kecil
 
-        const q = 0.00003;
-        const EFFORT_PER_SHIP = 600;   // Tahunan — perahu kecil tapi armada agresif
+        let SHIP_COST  = 120000000;    // Perahu kecil — Rp 120 Juta
+        let SHIP_SELL  = 40000000;     // Rp 40 Juta
+        let SHIP_MAINT = 18000000;     // Tahunan — Rp 18 Juta/tahun
+
+        let q = 0.00003;
+        let EFFORT_PER_SHIP = 600;     // Tahunan — perahu kecil tapi armada agresif
         const maxTicks = 60;           // 5 Tahun * 12 Bulan
-        const delta = 0.05;
+        let delta = 0.05;
 
         // SCENARIOS
         // c dikalibrasi agar profit per unit effort positif di N tinggi tetapi
@@ -204,6 +255,14 @@
                 initBudget: 200000000,
                 startN_ratio: 0.2
             }
+        };
+
+        // Snapshot of factory defaults for the admin "Restore" button
+        const ADMIN_DEFAULTS = {
+            UMR_MONTHLY, MGMT_CUT, MAX_FLEET,
+            SHIP_COST, SHIP_SELL, SHIP_MAINT,
+            q, EFFORT_PER_SHIP, delta,
+            scenarios: JSON.parse(JSON.stringify(SCENARIOS))
         };
 
         // STATE
@@ -401,7 +460,98 @@
         document.getElementById('scenarioSelect').addEventListener('change', (e) => {
             activeScenario = e.target.value;
             resetSimulation();
+            if (!document.getElementById('adminPanel').classList.contains('hidden')) {
+                populateAdminPanel();
+            }
         });
+
+        // ---- Admin tuning panel ----
+        const ID = (s) => document.getElementById(s);
+
+        function formatJuta(rp) {
+            return `Rp ${(rp / 1000000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} Juta`;
+        }
+
+        function refreshShipButtonLabels() {
+            const buyBtn = ID('btnBuyShip');
+            const sellBtn = ID('btnSellShip');
+            buyBtn.querySelectorAll('span')[2].textContent = formatJuta(SHIP_COST);
+            sellBtn.querySelectorAll('span')[2].textContent = formatJuta(SHIP_SELL);
+        }
+
+        function populateAdminPanel() {
+            const sc = SCENARIOS[activeScenario];
+            ID('adm_r').value = sc.params.r;
+            ID('adm_K').value = sc.params.K;
+            ID('adm_q').value = q;
+            ID('adm_P').value = sc.params.P;
+            ID('adm_c').value = sc.params.c;
+            ID('adm_delta').value = delta;
+            ID('adm_shipCost').value = SHIP_COST;
+            ID('adm_shipSell').value = SHIP_SELL;
+            ID('adm_shipMaint').value = SHIP_MAINT;
+            ID('adm_effortPerShip').value = EFFORT_PER_SHIP;
+            ID('adm_maxFleet').value = MAX_FLEET;
+            ID('adm_initFleet').value = sc.initFleet;
+            ID('adm_initBudget').value = sc.initBudget;
+            ID('adm_startN').value = sc.startN_ratio;
+            ID('adm_umr').value = UMR_MONTHLY;
+            ID('adm_mgmt').value = MGMT_CUT;
+        }
+
+        function applyAdminParams() {
+            const sc = SCENARIOS[activeScenario];
+            sc.params.r = parseFloat(ID('adm_r').value);
+            sc.params.K = parseFloat(ID('adm_K').value);
+            sc.params.P = parseFloat(ID('adm_P').value);
+            sc.params.c = parseFloat(ID('adm_c').value);
+            sc.initFleet = parseInt(ID('adm_initFleet').value, 10);
+            sc.initBudget = parseFloat(ID('adm_initBudget').value);
+            sc.startN_ratio = parseFloat(ID('adm_startN').value);
+
+            q = parseFloat(ID('adm_q').value);
+            delta = parseFloat(ID('adm_delta').value);
+            SHIP_COST = parseFloat(ID('adm_shipCost').value);
+            SHIP_SELL = parseFloat(ID('adm_shipSell').value);
+            SHIP_MAINT = parseFloat(ID('adm_shipMaint').value);
+            EFFORT_PER_SHIP = parseFloat(ID('adm_effortPerShip').value);
+            MAX_FLEET = parseInt(ID('adm_maxFleet').value, 10);
+            UMR_MONTHLY = parseFloat(ID('adm_umr').value);
+            MGMT_CUT = parseFloat(ID('adm_mgmt').value);
+
+            refreshShipButtonLabels();
+            resetSimulation();
+            ID('adminStatus').textContent = `✓ Applied to "${activeScenario}" @ ${new Date().toLocaleTimeString('id-ID')}`;
+        }
+
+        function restoreAdminDefaults() {
+            UMR_MONTHLY = ADMIN_DEFAULTS.UMR_MONTHLY;
+            MGMT_CUT    = ADMIN_DEFAULTS.MGMT_CUT;
+            MAX_FLEET   = ADMIN_DEFAULTS.MAX_FLEET;
+            SHIP_COST   = ADMIN_DEFAULTS.SHIP_COST;
+            SHIP_SELL   = ADMIN_DEFAULTS.SHIP_SELL;
+            SHIP_MAINT  = ADMIN_DEFAULTS.SHIP_MAINT;
+            q           = ADMIN_DEFAULTS.q;
+            EFFORT_PER_SHIP = ADMIN_DEFAULTS.EFFORT_PER_SHIP;
+            delta       = ADMIN_DEFAULTS.delta;
+            Object.keys(ADMIN_DEFAULTS.scenarios).forEach(k => {
+                SCENARIOS[k] = JSON.parse(JSON.stringify(ADMIN_DEFAULTS.scenarios[k]));
+            });
+            refreshShipButtonLabels();
+            populateAdminPanel();
+            resetSimulation();
+            ID('adminStatus').textContent = '↺ Defaults restored';
+        }
+
+        ID('btnAdmin').addEventListener('click', () => {
+            const panel = ID('adminPanel');
+            const wasHidden = panel.classList.contains('hidden');
+            panel.classList.toggle('hidden');
+            if (wasHidden) populateAdminPanel();
+        });
+        ID('btnAdminClose').addEventListener('click', () => ID('adminPanel').classList.add('hidden'));
+        ID('btnAdminApply').addEventListener('click', applyAdminParams);
+        ID('btnAdminDefaults').addEventListener('click', restoreAdminDefaults);
 
         function resetSimulation() {
             clearInterval(timer);
