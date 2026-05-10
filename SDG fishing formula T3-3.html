@@ -48,18 +48,18 @@
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
                     <div class="flex justify-between items-center mb-3">
                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Manajemen Armada</h3>
-                        <span id="fleetCountBadge" class="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded">2 / 50 Kapal</span>
+                        <span id="fleetCountBadge" class="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded">8 / 200 Kapal</span>
                     </div>
                     <div class="grid grid-cols-2 gap-3 mb-4">
                         <button id="btnBuyShip" class="flex flex-col items-center justify-center p-3 border-2 border-emerald-100 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                             <span class="text-2xl mb-1">🚢+</span>
-                            <span class="text-[10px] font-bold text-emerald-700 uppercase">Beli Kapal</span>
-                            <span class="text-[10px] text-emerald-600">Rp 800 Juta</span>
+                            <span class="text-[10px] font-bold text-emerald-700 uppercase">Beli Perahu</span>
+                            <span class="text-[10px] text-emerald-600">Rp 120 Juta</span>
                         </button>
                         <button id="btnSellShip" class="flex flex-col items-center justify-center p-3 border-2 border-red-100 bg-red-50 hover:bg-red-100 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                             <span class="text-2xl mb-1">🚢−</span>
-                            <span class="text-[10px] font-bold text-red-700 uppercase">Jual Kapal</span>
-                            <span class="text-[10px] text-red-600">Rp 300 Juta</span>
+                            <span class="text-[10px] font-bold text-red-700 uppercase">Jual Perahu</span>
+                            <span class="text-[10px] text-red-600">Rp 40 Juta</span>
                         </button>
                     </div>
                     <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
@@ -164,42 +164,45 @@
         const UMR_MONTHLY = 2500000;   // Rp 2.5 Juta
         const MGMT_CUT    = 0.10;      // 10% untuk modal pelabuhan
         const J_FISHERMEN = 50;        // Ukuran komunitas nelayan
-        const MAX_FLEET   = 50;        
-        
-        const SHIP_COST = 800000000;   
-        const SHIP_SELL = 300000000;   
-        const SHIP_MAINT = 100000000;  // Tahunan
-        
+        const MAX_FLEET   = 200;       // Armada perahu kecil
+
+        const SHIP_COST = 120000000;   // Perahu kecil — Rp 120 Juta
+        const SHIP_SELL = 40000000;    // Rp 40 Juta
+        const SHIP_MAINT = 18000000;   // Tahunan — Rp 18 Juta/tahun
+
         const q = 0.00003;
-        const EFFORT_PER_SHIP = 1000;  // Tahunan
+        const EFFORT_PER_SHIP = 200;   // Tahunan — perahu kecil = effort lebih rendah
         const maxTicks = 60;           // 5 Tahun * 12 Bulan
         const delta = 0.05;
 
         // SCENARIOS
+        // c dikalibrasi agar profit per unit effort positif di N tinggi tetapi
+        // mendekati nol di sekitar MSY — memaksa pemain memilih antara armada
+        // besar (collapse cepat) atau armada terkendali (profit modest).
         const SCENARIOS = {
             normal: {
-                params: { P: 35000, c: 1200000, r: 0.4, K: 5000000 },
-                initFleet: 2,
-                initBudget: 1500000000,
+                params: { P: 35000, c: 220000, r: 0.4, K: 5000000 },
+                initFleet: 8,
+                initBudget: 600000000,
                 startN_ratio: 1.0
             },
             elnino: {
-                params: { P: 35000, c: 1200000, r: 0.2, K: 5000000 },
-                initFleet: 2,
-                initBudget: 1500000000,
+                params: { P: 35000, c: 220000, r: 0.2, K: 5000000 },
+                initFleet: 8,
+                initBudget: 600000000,
                 startN_ratio: 1.0
             },
             bbm: {
-                params: { P: 35000, c: 2000000, r: 0.4, K: 5000000 }, 
-                initFleet: 2,
-                initBudget: 1500000000,
+                params: { P: 35000, c: 360000, r: 0.4, K: 5000000 },
+                initFleet: 8,
+                initBudget: 600000000,
                 startN_ratio: 1.0
             },
             overfished: {
-                params: { P: 35000, c: 1200000, r: 0.4, K: 5000000 },
-                initFleet: 20,
-                initBudget: 500000000, 
-                startN_ratio: 0.2 
+                params: { P: 35000, c: 220000, r: 0.4, K: 5000000 },
+                initFleet: 80,
+                initBudget: 200000000,
+                startN_ratio: 0.2
             }
         };
 
@@ -374,12 +377,13 @@
 
             const boatLayer = document.getElementById('boatLayer');
             let boatHTML = '';
+            const COLS = 25;
             for(let i=0; i<fleet; i++) {
-                const row = Math.floor(i / 10);
-                const col = i % 10;
-                const x = 260 + (col * 50) + (row % 2 * 20); 
-                const y = 110 + (row * 25);
-                boatHTML += `<use href="#smallBoat" x="${x}" y="${y}" width="25" height="25" style="animation: wave ${4 + Math.random()*2}s infinite ease-in-out" />`;
+                const row = Math.floor(i / COLS);
+                const col = i % COLS;
+                const x = 270 + (col * 20) + (row % 2 * 10);
+                const y = 115 + (row * 15);
+                boatHTML += `<use href="#smallBoat" x="${x}" y="${y}" width="14" height="9" style="animation: wave ${4 + Math.random()*2}s infinite ease-in-out" />`;
             }
             boatLayer.innerHTML = boatHTML;
 
