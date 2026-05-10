@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knovera — Simulator Perikanan SDG 14</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><path d=%22M10,50 Q50,10 90,50 Q50,90 10,50 Z%22 fill=%22%232563eb%22/></svg>">
+    <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        @keyframes wave {
+            0% { transform: translateX(0); }
+            50% { transform: translateX(-3%); }
+            100% { transform: translateX(0); }
+        }
+        .wave-anim { animation: wave 6s infinite ease-in-out; }
+        
+        @keyframes boatBob {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-2px); }
+        }
+        
+        @keyframes fishSwim {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-3px); }
+            75% { transform: translateX(3px); }
+        }
+
+        .fish-healthy { fill: #2563eb; }
+        .fish-pale { fill: #93c5fd; }
+        .fish-sparse { fill: #94a3b8; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .animate-shake { animation: shake 0.3s ease-in-out; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased overflow-x-hidden">
+
+    <!-- Header -->
+    <header class="bg-blue-900 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight">Knovera — Simulator Perikanan SDG 14</h1>
+                <p class="text-blue-200 mt-1">Belajar Pengelolaan Perikanan Berkelanjutan · Google Hackathon 2026</p>
+            </div>
+            <div class="hidden md:block text-right">
+                <span id="yearBadge" class="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-blue-800 text-white border border-blue-400">
+                    Year: 0
+                </span>
+                <div class="text-xs text-blue-300 mt-1">Team Knovera</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Left Column: Controls & Dashboard -->
+            <div class="lg:col-span-4 space-y-6">
+                
+                <!-- Delta Slider -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-sm font-bold text-slate-800">Tingkat Kesabaran Investor (δ)</label>
+                            <span id="label_delta" class="text-sm font-bold text-purple-600">5%</span>
+                        </div>
+                        <input type="range" id="input_delta" min="0" max="0.30" step="0.01" value="0.05" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-600">
+                        <p id="deltaWarning" class="text-xs text-amber-600 mt-2">Simulasi belum berjalan — atur δ sebelum mulai</p>
+                    </div>
+                </div>
+
+                <!-- Scenario Selector -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-6">
+                        <label class="text-sm font-bold text-slate-800 block mb-2">Skenario</label>
+                        <select id="scenarioSelect" class="w-full p-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="freeplay">Eksplorasi Bebas</option>
+                            <option value="sustainMSY">Armada Seimbang</option>
+                            <option value="recoverFishery">Bangkitkan Perikanan</option>
+                            <option value="marketCrisis">Krisis Pasar</option>
+                        </select>
+                        <div id="scenarioBanner" class="hidden mt-3 p-3 bg-blue-50 border border-blue-100 rounded text-sm text-blue-800"></div>
+                    </div>
+                </div>
+
+                <!-- Playback Controls -->
+                <div class="flex space-x-2">
+                    <button id="btnPlay" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors">▶ Play</button>
+                    <button id="btnPause" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded transition-colors hidden">⏸ Pause</button>
+                    <button id="btnReset" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 px-4 rounded transition-colors">↺ Reset</button>
+                    <button id="btnDemo" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition-colors">✨ Demo</button>
+                </div>
+
+                <!-- Metrics Grid -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                        <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Populasi Ikan</p>
+                        <p id="valPop" class="text-2xl font-bold text-blue-600 mt-1">100.0%</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                        <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Armada</p>
+                        <p id="valFleet" class="text-2xl font-bold text-teal-600 mt-1">2 kapal</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                        <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Budget</p>
+                        <p id="valBudget" class="text-2xl font-bold text-teal-600 mt-1">$500,000</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                        <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Annual Net Profit</p>
+                        <p id="valNetProfit" class="text-2xl font-bold text-emerald-600 mt-1">$0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                        <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Cumulative Profit</p>
+                        <p id="valCumProfit" class="text-2xl font-bold text-pink-600 mt-1">$0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                        <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">NPV</p>
+                        <p id="valNPV" class="text-2xl font-bold text-purple-600 mt-1">$0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                        <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Village Fund</p>
+                        <p id="valVillageFund" class="text-2xl font-bold text-slate-700 mt-1">$0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                        <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Income/Kapita</p>
+                        <p id="valIncome" class="text-2xl font-bold text-slate-700 mt-1">$0</p>
+                    </div>
+                </div>
+
+                <!-- Run History Table -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mt-6">
+                    <div class="bg-slate-100 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                        <h2 class="text-xl font-semibold text-slate-800">Run History</h2>
+                        <button id="btnClearHistory" class="text-xs text-slate-500 hover:text-red-600 transition-colors">Clear All</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase">Run</th>
+                                    <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase">Scenario</th>
+                                    <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase">Bio</th>
+                                    <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase">Econ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody" class="bg-white divide-y divide-slate-200">
+                                <tr><td colspan="4" class="px-4 py-6 text-center text-sm text-slate-400 italic">No runs yet.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Admin Drawer -->
+                <div id="adminDrawer" class="mt-4 border-t border-slate-200 pt-3">
+                    <button id="adminToggleBtn" class="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1 transition-colors">
+                        🔒 Pengaturan Lanjutan
+                    </button>
+                    <div id="adminContent" class="hidden mt-3 bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                        <div id="adminPinPrompt" class="flex items-center gap-2">
+                            <input type="password" id="adminPinInput" placeholder="PIN" maxlength="4" class="border border-slate-300 rounded px-2 py-1 text-sm w-24 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button id="adminPinConfirm" class="text-sm font-semibold text-blue-600 hover:text-blue-800">Masuk</button>
+                        </div>
+                        <div id="adminSliders" class="hidden space-y-4">
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="text-xs font-medium text-slate-700">Fish Market Price (P)</label>
+                                    <span id="label_adminP" class="text-xs font-bold text-blue-600">120</span>
+                                </div>
+                                <input type="range" id="input_adminP" min="60" max="200" step="10" value="120" class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                            </div>
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="text-xs font-medium text-slate-700">Operating Cost (c)</label>
+                                    <span id="label_adminC" class="text-xs font-bold text-blue-600">15</span>
+                                </div>
+                                <input type="range" id="input_adminC" min="5" max="40" step="1" value="15" class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                            </div>
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="text-xs font-medium text-slate-700">Growth Rate (r)</label>
+                                    <span id="label_adminR" class="text-xs font-bold text-blue-600">0.4</span>
+                                </div>
+                                <input type="range" id="input_adminR" min="0.1" max="0.8" step="0.1" value="0.4" class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                            </div>
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="text-xs font-medium text-slate-700">Carrying Capacity (K)</label>
+                                    <span id="label_adminK" class="text-xs font-bold text-blue-600">1,000,000</span>
+                                </div>
+                                <input type="range" id="input_adminK" min="500000" max="2000000" step="100000" value="1000000" class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Visualizer -->
+            <div class="lg:col-span-8 space-y-4">
+                
+                <!-- View Toggle -->
+                <div id="viewToggle" class="flex rounded-lg overflow-hidden border border-slate-200 w-fit bg-white shadow-sm">
+                    <button data-view="graph" class="px-4 py-1.5 text-sm font-medium bg-white text-slate-600 hover:bg-slate-50 transition-colors">📊 Graph</button>
+                    <button data-view="scene" class="px-4 py-1.5 text-sm font-medium bg-white text-slate-600 hover:bg-slate-50 transition-colors">🌊 Scene</button>
+                    <button data-view="both"  class="px-4 py-1.5 text-sm font-medium bg-blue-600 text-white transition-colors">🌓 Both</button>
+                </div>
+
+                <!-- Ocean Scene -->
+                <section id="oceanScene" class="w-full h-[200px] bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative transition-all duration-300">
+                    <svg width="100%" height="100%" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#dbeafe" />
+                                <stop offset="100%" stop-color="#93c5fd" />
+                            </linearGradient>
+                            <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#3b82f6" />
+                                <stop offset="100%" stop-color="#1e40af" />
+                            </linearGradient>
+                            
+                            <symbol id="smallBoat" viewBox="0 0 40 25">
+                                <polygon points="5,10 35,10 30,20 10,20" fill="#92400e" />
+                                <line x1="20" y1="10" x2="20" y2="2" stroke="#1e3a8a" stroke-width="2" />
+                            </symbol>
+                            
+                            <symbol id="largeBoat" viewBox="0 0 80 35">
+                                <polygon points="10,15 70,15 60,28 20,28" fill="#475569" />
+                                <rect x="30" y="5" width="20" height="10" fill="#dc2626" />
+                            </symbol>
+                            
+                            <symbol id="fish" viewBox="0 0 12 6">
+                                <ellipse cx="6" cy="3" rx="4" ry="2" />
+                                <polygon points="0,3 3,1 3,5" />
+                            </symbol>
+                        </defs>
+
+                        <rect x="0" y="0" width="100%" height="30%" fill="url(#skyGrad)" />
+                        <rect x="0" y="30%" width="100%" height="70%" fill="url(#waterGrad)" />
+                        <polygon points="0,40 40,60 20,200 0,200" fill="#334155" opacity="0.9" />
+
+                        <g id="fishLayer"></g>
+                        <g id="boatLayer"></g>
+
+                        <rect class="wave-anim" x="-10%" y="30%" width="120%" height="70%" fill="#ffffff" opacity="0.1" />
+                    </svg>
+                </section>
+
+                <!-- Chart Card -->
+                <div id="chartCard" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
+                    <div class="p-6 relative w-full h-[400px]">
+                        <canvas id="simChart"></canvas>
+                    </div>
+                    <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 text-center">
+                        <p id="nextWindowText" class="text-sm font-semibold text-slate-700">Window pembelian berikutnya: tahun 5</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Purchase Window Modal -->
+    <div id="purchaseModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div class="bg-blue-900 text-white p-4 -mx-6 -mt-6 rounded-t-2xl mb-4 text-center">
+                <h2 class="text-xl font-bold">WINDOW PEMBELIAN KAPAL <span id="pwYear"></span></h2>
+            </div>
+            <div class="space-y-2 mb-6 text-sm">
+                <div class="flex justify-between"><span class="text-slate-600">Budget saat ini:</span><span id="pwBudget" class="font-bold text-teal-600"></span></div>
+                <div class="flex justify-between"><span class="text-slate-600">Armada saat ini:</span><span id="pwFleet" class="font-bold"></span></div>
+                <div class="flex justify-between"><span class="text-slate-600">Populasi ikan:</span><span id="pwPop" class="font-bold"></span></div>
+                <div class="flex justify-between"><span class="text-slate-600">Profit bersih/thn:</span><span id="pwNet" class="font-bold"></span></div>
+                <div class="flex justify-between"><span class="text-slate-600">Maintenance/thn:</span><span id="pwMaint" class="font-bold text-red-600"></span></div>
+            </div>
+            
+            <!-- Slider for Fleet Adjustment -->
+            <div class="space-y-4 mb-6 border-t border-slate-200 pt-4">
+                <div>
+                    <label class="text-sm font-bold text-slate-700">Atur Jumlah Armada Baru:</label>
+                    <div class="flex items-center gap-4 mt-2">
+                        <input type="range" id="pwFleetSlider" min="1" max="50" step="1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                        <span id="pwFleetTarget" class="font-bold text-xl w-12 text-right text-blue-600">2</span>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center p-3 bg-slate-50 rounded border border-slate-200">
+                    <span class="text-sm text-slate-600">Total Biaya / Pendapatan:</span>
+                    <span id="pwCost" class="font-bold text-lg">$0</span>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <button id="btnConfirmPurchase" class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded disabled:opacity-50 disabled:bg-slate-400 transition-colors" onclick="executeSliderPurchase()">Konfirmasi Perubahan</button>
+                <button id="btnHold" class="w-full py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded transition-colors" onclick="executePurchase(0)">Tidak ada perubahan</button>
+            </div>
+            <p class="text-xs text-slate-500 mt-4 text-center">Kapal tidak dapat dijual dengan harga penuh ($30,000 dari $80,000). Ini adalah biaya yang tidak bisa dikembalikan.</p>
+        </div>
+    </div>
+
+    <!-- Milestone Popup Toast -->
+    <div id="milestonePopup" class="fixed bottom-6 right-6 max-w-sm w-full rounded-xl shadow-2xl z-50 transform translate-y-[150%] transition-transform duration-300 flex flex-col overflow-hidden">
+        <div id="milestoneHeader" class="px-4 py-2 flex justify-between items-center text-white">
+            <h4 id="milestoneTitle" class="font-bold text-sm tracking-wide">Title</h4>
+            <button id="milestoneClose" class="text-xl leading-none hover:opacity-75">&times;</button>
+        </div>
+        <div class="bg-white p-4 flex flex-col gap-3">
+            <div class="flex gap-3 items-start">
+                <span class="text-xl leading-none">🌊</span>
+                <p id="milestoneBio" class="text-sm text-slate-700 leading-snug"></p>
+            </div>
+            <hr class="border-slate-100">
+            <div class="flex gap-3 items-start">
+                <span class="text-xl leading-none">💰</span>
+                <p id="milestoneEcon" class="text-sm text-slate-700 leading-snug"></p>
+            </div>
+            <hr class="border-slate-100">
+            <p id="milestoneContext" class="text-xs text-slate-500 italic mt-1"></p>
+            <hr class="border-slate-100">
+            <p id="milestonePrompt" class="text-sm font-medium text-slate-800 mt-1"></p>
+        </div>
+    </div>
+
+    <!-- Reflection Modal -->
+    <div id="reflectionModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Run Complete</h3>
+            
+            <div id="scenarioResultBox" class="hidden mb-4 border border-slate-200 rounded-lg overflow-hidden">
+                <div class="bg-slate-100 px-3 py-2 border-b border-slate-200 text-xs font-bold text-slate-700 text-center">HASIL TANTANGAN</div>
+                <div class="bg-white p-3 text-sm space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-600">🌊 Target Biologis:</span>
+                        <span id="resBio" class="font-bold"></span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-600">💰 Target Ekonomi:</span>
+                        <span id="resEcon" class="font-bold"></span>
+                    </div>
+                    <hr class="border-slate-100">
+                    <div class="flex justify-between items-center pt-1">
+                        <span class="text-slate-800 font-semibold">Hasil Keseluruhan:</span>
+                        <span id="resOverall" class="font-bold text-lg"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="guidedReflection" class="hidden space-y-4 mb-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Tier 1 — Observe</label>
+                    <p class="text-xs text-slate-500 mb-2">Deskripsikan apa yang terjadi pada populasi ikan dalam run kamu. Kapan titik kritis terjadi?</p>
+                    <textarea id="refTier1" rows="2" class="w-full p-2 border border-slate-300 rounded text-sm focus:ring-blue-500"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Tier 2 — Analyze</label>
+                    <p class="text-xs text-slate-500 mb-2">Bandingkan Cumulative Profit dengan NPV. Mengapa dua angka ini berbeda? Apa artinya bagi keputusan investasi?</p>
+                    <select id="refTier2Select" class="w-full p-2 border border-slate-300 rounded text-sm mb-2 focus:ring-blue-500">
+                        <option value="">Pilih jawaban...</option>
+                        <option value="a">NPV lebih rendah karena masa depan didiskon</option>
+                        <option value="b">NPV lebih tinggi karena ikan bertambah</option>
+                        <option value="c">Keduanya selalu sama</option>
+                    </select>
+                    <input type="text" id="refTier2Text" placeholder="Alasan singkat..." class="w-full p-2 border border-slate-300 rounded text-sm focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Tier 3 — Evaluate (Opsional)</label>
+                    <p class="text-xs text-slate-500 mb-2">Model ini mengasumsikan satu spesies ikan, tidak ada perubahan iklim, dan semua nelayan mengikuti aturan. Asumsi mana yang paling tidak realistis? Apa yang tidak bisa diprediksi model ini?</p>
+                    <textarea id="refTier3" rows="2" class="w-full p-2 border border-slate-300 rounded text-sm focus:ring-blue-500"></textarea>
+                </div>
+            </div>
+
+            <div id="freeplayReflection" class="mb-4">
+                <label class="block text-sm font-bold text-slate-700 mb-1">Refleksi</label>
+                <textarea id="refFreeplay" rows="4" class="w-full p-2 border border-slate-300 rounded text-sm focus:ring-blue-500" placeholder="My strategy was..."></textarea>
+            </div>
+
+            <div class="flex gap-2">
+                <button id="btnSkipReflection" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 py-2 px-4 rounded font-semibold transition-colors">Skip</button>
+                <button id="btnSaveReflection" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded font-semibold transition-colors">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAB Tutorial -->
+    <button id="fabTutorial" class="fixed bottom-6 right-6 w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg z-40 text-xl font-bold flex items-center justify-center hover:bg-blue-700 transition-colors">?</button>
+    <div id="tutorialOverlay" class="hidden fixed inset-0 bg-black/50 z-[45] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 relative">
+            <div class="text-center">
+                <div id="tutIcon" class="text-4xl mb-2">🚢</div>
+                <h3 id="tutTitle" class="text-lg font-bold text-slate-800 mb-2">Kamu adalah Manajer Pelabuhan</h3>
+                <p id="tutBody" class="text-sm text-slate-600 mb-6">Kelola armadamu selama 50 tahun untuk profit dan keberlanjutan.</p>
+                <div class="flex justify-between items-center">
+                    <button id="tutSkip" class="text-sm text-slate-500 hover:text-slate-700">Lewati</button>
+                    <button id="tutNext" class="bg-blue-600 text-white px-4 py-2 rounded font-semibold hover:bg-blue-700">Next →</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const q = 0.00003;
+        const maxYears = 50;
+        let tickSpeedMs = 400;
+        const EFFORT_PER_SHIP = 1000; // Adjusted down to 1000
+        const SHIP_COST = 80000;
+        const SHIP_SCRAP_VALUE = 30000;
+        const SHIP_MAINTENANCE = 8000;
+        const INITIAL_BUDGET = 500000;
+        const STARTING_FLEET = 2;
+        const PURCHASE_CYCLE = 5;
+        const MAX_FLEET = 50; // Increased to 50
+        const CREW_PER_SHIP = 20;
+        const SHORE_WORKERS = 200;
+        const LABOR_SHARE = 0.40;
+        const MIN_INCOME_THRESHOLD = 800;
+        const WELFARE_SUBSIDY_COST = 20000;
+        const PORT_DEV_COST = 30000;
+        const PORT_DEV_EFFECT = 0.05;
+        const MAX_PORT_UPGRADES = 3;
+        const ADMIN_PIN = "1234";
+
+        let adminParams = { P: 120, c: 15, r: 0.4, K: 1000000 };
+
+        // State Variables
+        let currentN = adminParams.K;
+        let currentYear = 0;
+        let isRunning = false;
+        let taxRate = 0.10;
+        let villageFund = 0;
+        let incomePerCapita = 0;
+        let portUpgradeCount = 0;
+        let fleet = STARTING_FLEET;
+        let budget = INITIAL_BUDGET;
+        let cumulativeProfit = 0;
+        let npv = 0;
+        let delta = 0.05;
+        
+        let milestoneCounters = {};
+        let milestonesSeen = {};
+        let milestoneQueue = [];
+        let milestoneActive = false;
+        let milestoneTimeout = null;
+        
+        let inPurchaseWindow = false;
+        let pendingWindowYear = null;
+        let activeScenario = 'freeplay';
+        let yearRecovered = null;
+        let purchaseLog = [];
+        let popData = [];
+        let timer = null;
+        let runCount = 0;
+        let targetFleet = fleet; // For the purchase window slider
+
+        // Formatting Helper
+        const fmt = (num) => Math.round(num).toLocaleString();
+
+        // Scenarios
+        const SCENARIOS = {
+            freeplay: {
+                name: 'Eksplorasi Bebas',
+                description: 'Tidak ada target. Kelola armada sesukamu selama 50 tahun.',
+                bioTarget: null,
+                econTarget: null,
+                startingFleet: STARTING_FLEET,
+                startingBudget: INITIAL_BUDGET,
+                startingN: null,
+                lockedSliders: [],
+                evaluate: () => null
+            },
+            sustainMSY: {
+                name: 'Armada Seimbang',
+                description: 'Jaga populasi ikan tetap sehat selama 50 tahun penuh — tanpa membuat perusahaanmu bangkrut.',
+                bioTarget: 'N ≥ 0.40K di tahun ke-50',
+                econTarget: 'Budget harus positif di akhir run',
+                startingFleet: 3,
+                startingBudget: INITIAL_BUDGET,
+                startingN: null,
+                lockedSliders: [],
+                evaluate: (finalN, K, budget) => ({
+                    bioPass:  finalN >= 0.40 * K,
+                    econPass: budget > 0,
+                    pass:     finalN >= 0.40 * K && budget > 0
+                })
+            },
+            recoverFishery: {
+                name: 'Bangkitkan Perikanan',
+                description: 'Stok kritis, budget terbatas, armada kecil. Pulihkan laut dan selamatkan perusahaan.',
+                bioTarget: 'N ≥ 0.40K sebelum atau pada tahun ke-30',
+                econTarget: 'NPV positif di tahun ke-50',
+                startingFleet: 1,
+                startingBudget: 150000,
+                startingN: 0.15,
+                lockedSliders: [],
+                evaluate: (finalN, K, budget, npv, yearRecovered) => ({
+                    bioPass:  yearRecovered !== null && yearRecovered <= 30,
+                    econPass: npv > 0,
+                    pass:     yearRecovered !== null && yearRecovered <= 30 && npv > 0
+                })
+            },
+            marketCrisis: {
+                name: 'Krisis Pasar',
+                description: 'Harga ikan anjlok. Temukan ukuran armada yang masih menguntungkan tanpa menghancurkan ekosistem.',
+                bioTarget: 'N ≥ 0.35K di akhir run',
+                econTarget: 'Cumulative profit positif di tahun ke-50',
+                startingFleet: STARTING_FLEET,
+                startingBudget: INITIAL_BUDGET,
+                startingN: null,
+                lockedSliders: ['adminP'],
+                evaluate: (finalN, K, budget, npv, yearRecovered, cumulativeProfit) => ({
+                    bioPass:  finalN >= 0.35 * K,
+                    econPass: cumulativeProfit > 0,
+                    pass:     finalN >= 0.35 * K && cumulativeProfit > 0
+                })
+            }
+        };
+
+        // Milestones
+        const MILESTONE_STATES = {
+            extinct:    { test: (N, K, net) => N <= 0 },
+            overfish2:  { test: (N, K, net) => N > 0 && N <= 0.25 * K },
+            overfish1:  { test: (N, K, net) => N > 0.25 * K && N <= 0.40 * K },
+            best:       { test: (N, K, net) => N >= 0.45 * K && N <= 0.55 * K && net > 0 },
+            underfish2: { test: (N, K, net) => N > 0.60 * K && N <= 0.80 * K },
+            underfish1: { test: (N, K, net) => N > 0.80 * K }
+        };
+
+        const MILESTONE_CONTENT = {
+            extinct: {
+                title: "Kepunahan Stok", headerClass: "bg-red-700",
+                bio: "Populasi mencapai nol. Ikan tidak cukup tersisa untuk bereproduksi — tangkapan masa depan adalah nol permanen.",
+                econ: "Seluruh armadamu sekarang hanya menghasilkan biaya maintenance tanpa pendapatan.",
+                context: "Di Teluk Benoa, Bali, armada tuna menyusut dari 1.000+ kapal pada 2009 menjadi hanya 275 pada 2024 — bukan karena regulasi, tapi karena ikannya menghilang.",
+                prompt: "Di tahun berapa populasi mulai menurun tajam? Berapa kapal yang kamu miliki saat itu? Apakah ada hubungannya?"
+            },
+            overfish2: {
+                title: "Penipisan Kritis", headerClass: "bg-red-600",
+                bio: "N ≤ 25% dari K. Stok pemijahan terlalu kecil untuk mengimbangi tangkapan saat ini. Setiap tahun menghasilkan lebih sedikit ikan dari sebelumnya.",
+                econ: "Pendapatan per kapal anjlok — tangkapan lebih sedikit berarti revenue tidak cukup menutup maintenance. Net profit negatif semakin besar setiap tahun. Ini adalah Tragedy of the Commons dalam angkamu.",
+                context: "Produksi ikan Indonesia turun ~2% per tahun dan diproyeksikan turun dari 13,9 juta ton (2023) menjadi 12,3 juta ton pada 2028. Grafik populasimu mencerminkan tren nyata ini.",
+                prompt: "Jika kamu menjual 1 kapal sekarang (di window berikutnya), berapa tahun yang dibutuhkan N untuk pulih ke 40% dari K? Apakah budgetmu masih cukup untuk bertahan?"
+            },
+            overfish1: {
+                title: "Peringatan: MEY Terlampaui", headerClass: "bg-amber-500 text-slate-900",
+                bio: "N antara 25-40% dari K. Populasi menurun lebih cepat dari pertumbuhannya. Setiap tahun ada lebih sedikit ikan pemijah untuk menggantikan yang ditangkap.",
+                econ: "Kamu telah melewati titik Maximum Economic Yield. Tambah effort sekarang justru menurunkan profit — kamu bekerja lebih keras untuk hasil lebih sedikit. Ini adalah jebakan bio-ekonomi.",
+                context: "3 dari 4 sumber daya ikan Indonesia sudah dieksploitasi penuh atau berlebihan. Armada yang terlalu besar adalah penyebab utamanya — bukan hanya cuaca atau perubahan iklim.",
+                prompt: "Coba perhatikan selisih antara Gross Profit dan Net Profit di metrik. Mengapa selisihnya semakin besar ketika populasi turun? Apa peran biaya maintenance dalam hal ini?"
+            },
+            best: {
+                title: "Titik Optimal Tercapai", headerClass: "bg-emerald-600",
+                bio: "N berada di sekitar K/2 — titik di mana kurva pertumbuhan logistik mencapai puncaknya. Laut meregenerasi ikan dengan laju maksimum yang mungkin.",
+                econ: "Profit bersih positif DAN populasi memperbarui diri sendiri. Ini adalah satu-satunya kondisi di mana armada saat ini bisa bertahan tanpa batas waktu tanpa menguras stok.",
+                context: "Di Samudra Pasifik Timur Laut, investasi jangka panjang dalam manajemen kuota ketat menghasilkan 92,7% stok ikan yang berkelanjutan. Di sinilah rasanya dari dalam.",
+                prompt: "Dapatkah kamu mempertahankan N di zona ini selama 10 tahun berturut-turut tanpa mengubah armada? Apa yang terjadi pada budget selama periode itu?"
+            },
+            underfish2: {
+                title: "Potensi Terbuang", headerClass: "bg-blue-600",
+                bio: "N antara 60-80% dari K. Laut sehat, namun tidak pada produktivitas maksimumnya. Kurva pertumbuhan logistik menunjukkan lebih banyak ikan bisa diproduksi dengan sedikit peningkatan tekanan penangkapan.",
+                econ: "MEY (Maximum Economic Yield) kemungkinan ada di N yang lebih rendah. Kamu menghasilkan profit, tapi ada pendapatan potensial yang tersisa di laut setiap tahunnya.",
+                context: "MEY biasanya berada pada N yang lebih rendah dari MSY — ekonom dan ekolog sering tidak sepakat tentang target yang tepat. Armadamu menghasilkan profit, tapi modelnya bilang masih ada ruang lebih.",
+                prompt: "Di window pembelian berikutnya, beli 1 kapal tambahan. Apakah net profit meningkat? Apakah N mulai turun? Temukan jumlah kapal di mana profit tertinggi sebelum N mulai merosot."
+            },
+            underfish1: {
+                title: "Laut Terlalu Penuh", headerClass: "bg-blue-500",
+                bio: "N > 80% dari K. Ketika laut sepadat ini, ikan bersaing memperebutkan makanan terbatas — efek kepadatan memperlambat reproduksi di bawah laju maksimumnya. Laut tidak bisa tumbuh lebih cepat dari yang diizinkan K.",
+                econ: "Kamu menangkap jauh lebih sedikit dari yang bisa diproduksi laut secara berkelanjutan. Kapal-kapalmu keluar melaut, tapi tangkapan per unit effort rendah. Potensi ekonomi terbuang setiap tahun.",
+                context: "Perairan yang benar-benar kurang dieksploitasi sangat langka secara historis dan tidak pernah bertahan lama tanpa perlindungan aktif. Indonesia kehilangan sebagian besar stok tersebut selama era ekspansi armada besar-besaran tahun 1980-1990an.",
+                prompt: "Armadamu kecil — itu bagus untuk ikan, tapi bagaimana dengan budgetmu? Hitung berapa tahun lagi budget akan habis jika profit tahunan tetap seperti sekarang. Apakah ini strategi yang berkelanjutan?"
+            }
+        };
+
+        // Chart.js Setup
+        const ctx = document.getElementById('simChart').getContext('2d');
+        const labels = Array.from({length: maxYears + 1}, (_, i) => `Yr ${i}`);
+        const simChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets:[{
+                    label: 'Populasi Ikan (N)',
+                    data: [],
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    fill: true,
+                    tension: 0.2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 200 },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        suggestedMax: 1200000,
+                        title: { display: true, text: 'Populasi Ikan (N)' }
+                    },
+                    x: {
+                        title: { display: true, text: 'Tahun' }
+                    }
+                }
+            }
+        });
+
+        // Core Logic
+        function stepYear() {
+            if (!isRunning || inPurchaseWindow) return;
+
+            const currentE = fleet * EFFORT_PER_SHIP;
+            const growth_t = adminParams.r * currentN * (1 - currentN / adminParams.K);
+            const yield_t = q * currentE * currentN;
+            currentN = Math.max(0, currentN + growth_t - yield_t);
+
+            const gross_t = adminParams.P * yield_t - adminParams.c * currentE;
+            const maint_t = SHIP_MAINTENANCE * fleet;
+            const tax_t = taxRate * gross_t;
+            const net_t = gross_t - tax_t - maint_t;
+            const disc_t = net_t / Math.pow(1 + delta, currentYear);
+
+            villageFund += tax_t;
+            const totalFishermen = SHORE_WORKERS + (fleet * CREW_PER_SHIP);
+            incomePerCapita = (gross_t * LABOR_SHARE) / totalFishermen / 12;
+
+            budget += net_t;
+            cumulativeProfit += net_t;
+            npv += disc_t;
+
+            currentYear++;
+            popData[currentYear] = currentN;
+
+            updateMetrics(net_t);
+            updateOceanScene();
+            simChart.update();
+
+            if (activeScenario === 'recoverFishery' && currentN >= 0.40 * adminParams.K && yearRecovered === null) {
+                yearRecovered = currentYear;
+            }
+
+            if (currentYear % PURCHASE_CYCLE === 0 && currentYear < maxYears) {
+                openPurchaseWindow();
+            }
+
+            checkMilestones(currentN, adminParams.K, net_t);
+
+            if (currentYear >= maxYears || currentN <= 0) {
+                endRun();
+            }
+        }
+
+        function playSimulation() {
+            if (currentYear >= maxYears || currentN <= 0) resetSimulation();
+            isRunning = true;
+            document.getElementById('input_delta').disabled = true;
+            document.getElementById('deltaWarning').classList.add('hidden');
+            document.getElementById('btnPlay').classList.add('hidden');
+            document.getElementById('btnPause').classList.remove('hidden');
+            timer = setInterval(stepYear, tickSpeedMs);
+        }
+
+        function pauseSimulation() {
+            isRunning = false;
+            document.getElementById('btnPause').classList.add('hidden');
+            document.getElementById('btnPlay').classList.remove('hidden');
+            clearInterval(timer);
+        }
+
+        function resetSimulation() {
+            pauseSimulation();
+            
+            document.getElementById('input_delta').disabled = false;
+            document.getElementById('deltaWarning').classList.remove('hidden');
+            
+            currentYear = 0;
+            currentN = adminParams.K;
+            fleet = SCENARIOS[activeScenario].startingFleet;
+            budget = SCENARIOS[activeScenario].startingBudget;
+            cumulativeProfit = 0;
+            npv = 0;
+            villageFund = 0;
+            incomePerCapita = 0;
+            
+            milestoneCounters = {};
+            milestonesSeen = {};
+            milestoneQueue = [];
+            milestoneActive = false;
+            inPurchaseWindow = false;
+            pendingWindowYear = null;
+            yearRecovered = null;
+            purchaseLog = [];
+            
+            if (activeScenario === 'recoverFishery') {
+                currentN = SCENARIOS[activeScenario].startingN * adminParams.K;
+            }
+            
+            popData = Array(maxYears + 1).fill(null);
+            popData[0] = currentN;
+            
+            simChart.data.datasets[0].data = popData;
+            simChart.options.scales.y.suggestedMax = adminParams.K * 1.1;
+            simChart.update();
+            
+            updateMetrics(0);
+            updateOceanScene();
+            setView('both');
+            
+            tickSpeedMs = 400;
+            if (milestoneTimeout) clearTimeout(milestoneTimeout);
+            document.getElementById('milestonePopup').classList.add('translate-y-[150%]');
+        }
+
+        function endRun() {
+            pauseSimulation();
+            const sc = SCENARIOS[activeScenario];
+            
+            if (activeScenario === 'freeplay') {
+                document.getElementById('scenarioResultBox').classList.add('hidden');
+                document.getElementById('guidedReflection').classList.add('hidden');
+                document.getElementById('freeplayReflection').classList.remove('hidden');
+            } else {
+                document.getElementById('scenarioResultBox').classList.remove('hidden');
+                document.getElementById('guidedReflection').classList.remove('hidden');
+                document.getElementById('freeplayReflection').classList.add('hidden');
+                
+                const result = sc.evaluate(currentN, adminParams.K, budget, npv, yearRecovered, cumulativeProfit);
+                
+                document.getElementById('resBio').textContent = result.bioPass ? '✅ TERCAPAI' : '❌ GAGAL';
+                document.getElementById('resBio').className = result.bioPass ? 'font-bold text-emerald-600' : 'font-bold text-red-600';
+                
+                document.getElementById('resEcon').textContent = result.econPass ? '✅ TERCAPAI' : '❌ GAGAL';
+                document.getElementById('resEcon').className = result.econPass ? 'font-bold text-emerald-600' : 'font-bold text-red-600';
+                
+                document.getElementById('resOverall').textContent = result.pass ? 'SUKSES ✅' : 'GAGAL ❌';
+                document.getElementById('resOverall').className = result.pass ? 'font-bold text-lg text-emerald-600' : 'font-bold text-lg text-red-600';
+                
+                document.getElementById('reflectionModal').dataset.bioPass = result.bioPass;
+                document.getElementById('reflectionModal').dataset.econPass = result.econPass;
+            }
+            
+            document.getElementById('reflectionModal').classList.remove('hidden');
+        }
+
+        // Purchase Window & Slider Logic
+        function openPurchaseWindow() {
+            inPurchaseWindow = true;
+            pendingWindowYear = currentYear;
+            
+            const pctOfK = (currentN / adminParams.K * 100).toFixed(1);
+            const annualE = fleet * EFFORT_PER_SHIP;
+            const yield_ = q * annualE * currentN;
+            const gross = adminParams.P * yield_ - adminParams.c * annualE;
+            const maint = SHIP_MAINTENANCE * fleet;
+            const net = gross - taxRate * gross - maint;
+
+            document.getElementById('pwYear').textContent = currentYear;
+            document.getElementById('pwBudget').textContent = '$' + fmt(budget);
+            document.getElementById('pwFleet').textContent = `${fleet} kapal → E = ${fmt(annualE)}`;
+            
+            const popEl = document.getElementById('pwPop');
+            popEl.textContent = `${pctOfK}% dari K`;
+            if (pctOfK > 55) popEl.className = 'font-bold text-emerald-600';
+            else if (pctOfK > 30) popEl.className = 'font-bold text-amber-600';
+            else popEl.className = 'font-bold text-red-600';
+
+            const netEl = document.getElementById('pwNet');
+            netEl.textContent = '$' + fmt(net);
+            netEl.className = net >= 0 ? 'text-emerald-600 font-bold' : 'text-red-600 font-bold';
+
+            document.getElementById('pwMaint').textContent = '$' + fmt(maint);
+
+            // Initialize Slider
+            targetFleet = fleet;
+            const slider = document.getElementById('pwFleetSlider');
+            slider.value = fleet;
+            slider.max = MAX_FLEET;
+            updatePurchasePreview();
+
+            document.getElementById('purchaseModal').classList.remove('hidden');
+        }
+
+        function updatePurchasePreview() {
+            const slider = document.getElementById('pwFleetSlider');
+            targetFleet = parseInt(slider.value);
+            document.getElementById('pwFleetTarget').textContent = targetFleet;
+            
+            const diff = targetFleet - fleet;
+            let cost = 0;
+            const costEl = document.getElementById('pwCost');
+            const btnConfirm = document.getElementById('btnConfirmPurchase');
+
+            if (diff > 0) {
+                cost = diff * SHIP_COST;
+                costEl.textContent = `−$${fmt(cost)}`;
+                costEl.className = 'font-bold text-lg text-red-600';
+                
+                if (budget < cost) {
+                    btnConfirm.disabled = true;
+                    costEl.textContent += ' (Budget kurang)';
+                } else {
+                    btnConfirm.disabled = false;
+                }
+            } else if (diff < 0) {
+                cost = Math.abs(diff) * SHIP_SCRAP_VALUE;
+                costEl.textContent = `+$${fmt(cost)}`;
+                costEl.className = 'font-bold text-lg text-emerald-600';
+                btnConfirm.disabled = false;
+            } else {
+                costEl.textContent = `$0`;
+                costEl.className = 'font-bold text-lg text-slate-600';
+                btnConfirm.disabled = true; // Use "Tidak ada perubahan" button instead
+            }
+        }
+
+        document.getElementById('pwFleetSlider').addEventListener('input', updatePurchasePreview);
+
+        function executeSliderPurchase() {
+            const diff = targetFleet - fleet;
+            executePurchase(diff);
+        }
+
+        function executePurchase(count) {
+            if (count > 0) {
+                const cost = count * SHIP_COST;
+                if (budget < cost || fleet + count > MAX_FLEET) return;
+                budget -= cost;
+                fleet += count;
+            } else if (count < 0) {
+                const gain = Math.abs(count) * SHIP_SCRAP_VALUE;
+                if (fleet + count < 1) return;
+                budget += gain;
+                fleet += count;
+            }
+            
+            purchaseLog.push({
+                year: currentYear,
+                action: count > 0 ? 'Buy' : (count < 0 ? 'Sell' : 'Hold'),
+                shipsBought: count > 0 ? count : 0,
+                shipsSold: count < 0 ? Math.abs(count) : 0,
+                fleetAfter: fleet,
+                budgetAfter: budget,
+                popPct: (currentN / adminParams.K * 100).toFixed(1)
+            });
+
+            inPurchaseWindow = false;
+            pendingWindowYear = null;
+            document.getElementById('purchaseModal').classList.add('hidden');
+            updateMetrics(0);
+            updateOceanScene();
+        }
+
+        // Metrics & UI
+        function updateMetrics(lastNet = 0) {
+            document.getElementById('valPop').textContent = (currentN / adminParams.K * 100).toFixed(1) + '%';
+            document.getElementById('valFleet').textContent = fleet + ' kapal';
+            
+            const budgEl = document.getElementById('valBudget');
+            budgEl.textContent = '$' + fmt(budget);
+            budgEl.className = budget >= 0 ? 'text-2xl font-bold text-teal-600 mt-1' : 'text-2xl font-bold text-red-600 mt-1';
+
+            const netEl = document.getElementById('valNetProfit');
+            netEl.textContent = '$' + fmt(lastNet);
+            netEl.className = lastNet >= 0 ? 'text-2xl font-bold text-emerald-600 mt-1' : 'text-2xl font-bold text-red-600 mt-1';
+
+            document.getElementById('valCumProfit').textContent = '$' + fmt(cumulativeProfit);
+            document.getElementById('valNPV').textContent = '$' + fmt(npv);
+            document.getElementById('valVillageFund').textContent = '$' + fmt(villageFund);
+            document.getElementById('valIncome').textContent = '$' + fmt(incomePerCapita);
+
+            const nextWindow = Math.ceil((currentYear + 0.1) / PURCHASE_CYCLE) * PURCHASE_CYCLE;
+            document.getElementById('nextWindowText').textContent = `Window pembelian berikutnya: tahun ${Math.min(nextWindow, maxYears)}`;
+            document.getElementById('yearBadge').textContent = `Year: ${currentYear}`;
+        }
+
+        // Ocean Scene
+        const FISH_POSITIONS = [
+            {x: 35, y: 55}, {x: 42, y: 62}, {x: 50, y: 57}, {x: 55, y: 67}, {x: 65, y: 60},
+            {x: 75, y: 65}, {x: 38, y: 72}, {x: 48, y: 75}, {x: 58, y: 70}, {x: 68, y: 77},
+            {x: 32, y: 65}, {x: 45, y: 55}, {x: 52, y: 80}, {x: 62, y: 55}, {x: 72, y: 72},
+            {x: 40, y: 80}, {x: 60, y: 62}, {x: 70, y: 57}, {x: 78, y: 70}, {x: 30, y: 60}
+        ];
+
+        function updateOceanScene() {
+            const boatLayer = document.getElementById('boatLayer');
+            const fishLayer = document.getElementById('fishLayer');
+
+            let boatHTML = '';
+            const maxPerRow = 10; // Increased to fit up to 50 boats nicely
+            const numRows = Math.ceil(fleet / maxPerRow) || 1;
+            const boatsPerRow = Math.ceil(fleet / numRows);
+
+            let globalIdx = 0;
+            for (let r = 0; r < numRows; r++) {
+                const perRowCount = Math.min(boatsPerRow, fleet - globalIdx);
+                if (perRowCount <= 0) continue;
+
+                const scale = 0.35; // Fixed small size regardless of count
+                const spacing = perRowCount > 1 ? 90 / perRowCount : 0;
+                const startX = perRowCount > 1 ? 5 : 45;
+                const yBase = 85 - ((numRows - 1 - r) * 8); // Tighter vertical spacing
+
+                for(let j=0; j<perRowCount; j++) {
+                    const isLarge = fleet >= 20 ? (j%3===0) : (fleet >= 10 ? (j%2===0) : false);
+                    const t = isLarge ? 'large' : 'small';
+                    
+                    const x = startX + (j * spacing);
+                    const w = (isLarge ? 22 : 16) * scale;
+                    const h = (isLarge ? 10 : 9) * scale;
+                    const y = yBase - (h * 0.8); 
+                    const delay = -((globalIdx * 0.37) % 2.6).toFixed(2);
+                    
+                    boatHTML += `<g class="ocean-boat" style="animation: boatBob 2.6s ease-in-out infinite; animation-delay: ${delay}s;">
+                        <use href="#${t}Boat" x="${x}%" y="${y}%" width="${w}%" height="${h}%" />
+                    </g>`;
+                    globalIdx++;
+                }
+            }
+            boatLayer.innerHTML = boatHTML;
+
+            let fishCount = 0;
+            const ratio = currentN / adminParams.K;
+            if (currentN > 0) {
+                if (ratio > 0.7) fishCount = 20;
+                else if (ratio >= 0.3) fishCount = 10;
+                else fishCount = 3;
+            }
+
+            let fishClass = 'fish-sparse';
+            if (ratio > 0.55) fishClass = 'fish-healthy';
+            else if (ratio > 0.30) fishClass = 'fish-pale';
+
+            let fishHTML = '';
+            for(let i=0; i<fishCount; i++) {
+                const pos = FISH_POSITIONS[i % FISH_POSITIONS.length];
+                const delay = -((i * 0.29) % 2.0).toFixed(2);
+                fishHTML += `<g class="ocean-fish" style="animation: fishSwim 2.0s ease-in-out infinite; animation-delay: ${delay}s;">
+                    <use href="#fish" x="${pos.x}%" y="${pos.y}%" width="5%" height="5%" class="${fishClass}" />
+                </g>`;
+            }
+            fishLayer.innerHTML = fishHTML;
+        }
+
+        // Milestones
+        function checkMilestones(N, K, net) {
+            for (const [id, state] of Object.entries(MILESTONE_STATES)) {
+                if (state.test(N, K, net)) {
+                    milestoneCounters[id] = (milestoneCounters[id] || 0) + 1;
+                    if (milestoneCounters[id] >= 3 && !milestonesSeen[id]) {
+                        milestoneQueue.push(id);
+                        milestonesSeen[id] = true;
+                    }
+                } else {
+                    milestoneCounters[id] = 0;
+                }
+            }
+            if (!milestoneActive && milestoneQueue.length > 0) {
+                showNextMilestone();
+            }
+        }
+
+        function showNextMilestone() {
+            if (milestoneQueue.length === 0) { milestoneActive = false; return; }
+            milestoneActive = true;
+            const id = milestoneQueue.shift();
+            const content = MILESTONE_CONTENT[id];
+            
+            document.getElementById('milestoneTitle').textContent = content.title;
+            document.getElementById('milestoneBio').textContent = content.bio;
+            document.getElementById('milestoneEcon').textContent = content.econ;
+            document.getElementById('milestoneContext').textContent = content.context;
+            document.getElementById('milestonePrompt').textContent = content.prompt;
+            
+            const header = document.getElementById('milestoneHeader');
+            header.className = `px-4 py-2 flex justify-between items-center ${content.headerClass}`;
+            if(id === 'overfish1') header.classList.add('text-slate-900');
+            else header.classList.add('text-white');
+            
+            const popup = document.getElementById('milestonePopup');
+            popup.classList.remove('translate-y-[150%]');
+            popup.classList.add('translate-y-0');
+            
+            milestoneTimeout = setTimeout(dismissMilestone, 12000);
+        }
+
+        function dismissMilestone() {
+            if (milestoneTimeout) clearTimeout(milestoneTimeout);
+            const popup = document.getElementById('milestonePopup');
+            popup.classList.remove('translate-y-0');
+            popup.classList.add('translate-y-[150%]');
+            
+            setTimeout(() => {
+                milestoneActive = false;
+                if (milestoneQueue.length > 0) showNextMilestone();
+            }, 500);
+        }
+
+        document.getElementById('milestoneClose').addEventListener('click', dismissMilestone);
+
+        // View Toggle
+        function setView(view) {
+            document.querySelectorAll('#viewToggle button').forEach(btn => {
+                if (btn.dataset.view === view) {
+                    btn.className = "px-4 py-1.5 text-sm font-medium bg-blue-600 text-white transition-colors";
+                } else {
+                    btn.className = "px-4 py-1.5 text-sm font-medium bg-white text-slate-600 hover:bg-slate-50 transition-colors";
+                }
+            });
+
+            const ocean = document.getElementById('oceanScene');
+            const chart = document.getElementById('chartCard');
+
+            if (view === 'both') {
+                ocean.style.display = 'block';
+                ocean.className = "w-full h-[200px] bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative transition-all duration-300 mb-4";
+                chart.style.display = 'block';
+            } else if (view === 'graph') {
+                ocean.style.display = 'none';
+                chart.style.display = 'block';
+            } else if (view === 'scene') {
+                chart.style.display = 'none';
+                ocean.style.display = 'block';
+                ocean.className = "w-full h-[400px] bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative transition-all duration-300 mb-4";
+            }
+        }
+
+        document.querySelectorAll('#viewToggle button').forEach(btn => {
+            btn.addEventListener('click', (e) => setView(e.target.dataset.view));
+        });
+
+        // Admin Drawer
+        document.getElementById('adminToggleBtn').addEventListener('click', () => {
+            document.getElementById('adminContent').classList.toggle('hidden');
+        });
+
+        document.getElementById('adminPinConfirm').addEventListener('click', () => {
+            const input = document.getElementById('adminPinInput');
+            if (input.value === ADMIN_PIN) {
+                document.getElementById('adminPinPrompt').classList.add('hidden');
+                document.getElementById('adminSliders').classList.remove('hidden');
+            } else {
+                input.classList.add('animate-shake');
+                setTimeout(() => input.classList.remove('animate-shake'), 300);
+            }
+        });
+
+        ['P', 'c', 'r', 'K'].forEach(param => {
+            document.getElementById(`input_admin${param.toUpperCase()}`).addEventListener('input', (e) => {
+                adminParams[param] = parseFloat(e.target.value);
+                document.getElementById(`label_admin${param.toUpperCase()}`).textContent = param === 'K' ? fmt(adminParams[param]) : adminParams[param];
+                if (param === 'K') {
+                    simChart.options.scales.y.suggestedMax = adminParams.K * 1.1;
+                    simChart.update();
+                }
+            });
+        });
+
+        // Scenario Selection
+        document.getElementById('scenarioSelect').addEventListener('change', (e) => {
+            activeScenario = e.target.value;
+            const sc = SCENARIOS[activeScenario];
+            
+            const banner = document.getElementById('scenarioBanner');
+            if (activeScenario === 'freeplay') {
+                banner.classList.add('hidden');
+            } else {
+                banner.classList.remove('hidden');
+                banner.innerHTML = `<strong>🎯 Misi:</strong> ${sc.description}`;
+            }
+
+            // Reset admin overrides
+            document.getElementById('input_adminP').disabled = false;
+            if (activeScenario === 'marketCrisis') {
+                adminParams.P = 60;
+                document.getElementById('input_adminP').value = 60;
+                document.getElementById('label_adminP').textContent = "60 (Terkunci)";
+                document.getElementById('input_adminP').disabled = true;
+            } else {
+                adminParams.P = 120;
+                document.getElementById('input_adminP').value = 120;
+                document.getElementById('label_adminP').textContent = "120";
+            }
+
+            resetSimulation();
+        });
+
+        // History & Reflection
+        function saveRun(reflectionText) {
+            const runData = {
+                id: Date.now(),
+                runNumber: ++runCount,
+                scenario: SCENARIOS[activeScenario].name,
+                bioPass: activeScenario === 'freeplay' ? '-' : (document.getElementById('reflectionModal').dataset.bioPass === 'true' ? '✅' : '❌'),
+                econPass: activeScenario === 'freeplay' ? '-' : (document.getElementById('reflectionModal').dataset.econPass === 'true' ? '✅' : '❌'),
+                reflection: reflectionText || "(skipped)"
+            };
+
+            let history = JSON.parse(localStorage.getItem('tunaRunHistory') || '[]');
+            history.push(runData);
+            localStorage.setItem('tunaRunHistory', JSON.stringify(history));
+
+            document.getElementById('reflectionModal').classList.add('hidden');
+            document.getElementById('refTier1').value = '';
+            document.getElementById('refTier2Select').value = '';
+            document.getElementById('refTier2Text').value = '';
+            document.getElementById('refTier3').value = '';
+            document.getElementById('refFreeplay').value = '';
+            
+            loadHistory();
+        }
+
+        function loadHistory() {
+            let history = JSON.parse(localStorage.getItem('tunaRunHistory') || '[]');
+            runCount = history.length;
+            const tbody = document.getElementById('historyTableBody');
+            
+            if (history.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-sm text-slate-400 italic">No runs yet.</td></tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = history.slice().reverse().map(run => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-4 py-3 whitespace-nowrap text-slate-800 font-medium">#${run.runNumber}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-slate-600 text-xs">${run.scenario}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-center">${run.bioPass}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-center">${run.econPass}</td>
+                </tr>
+            `).join('');
+        }
+
+        document.getElementById('btnSaveReflection').addEventListener('click', () => {
+            let text = "";
+            if (activeScenario === 'freeplay') {
+                text = document.getElementById('refFreeplay').value.trim();
+            } else {
+                text = `T1: ${document.getElementById('refTier1').value.trim()} | T2: ${document.getElementById('refTier2Select').value} - ${document.getElementById('refTier2Text').value.trim()}`;
+            }
+            saveRun(text);
+        });
+
+        document.getElementById('btnSkipReflection').addEventListener('click', () => saveRun(""));
+        
+        document.getElementById('btnClearHistory').addEventListener('click', () => {
+            if (confirm('Clear all run history?')) {
+                localStorage.removeItem('tunaRunHistory');
+                loadHistory();
+            }
+        });
+
+        // Tutorial FAB
+        const TUTORIAL_STEPS = [
+            { icon: '🚢', title: 'Kamu adalah Manajer Pelabuhan', body: 'Kelola armadamu selama 50 tahun untuk profit dan keberlanjutan.' },
+            { icon: '💰', title: 'Mulai dengan $500,000 dan 2 kapal', body: 'Setiap kapal menghasilkan tangkapan — tapi juga biaya maintenance tahunan.' },
+            { icon: '🪟', title: 'Setiap 5 tahun, beli atau jual kapal', body: 'Keputusan ini menentukan nasib laut dan perusahaanmu.' },
+            { icon: '📊', title: 'Perhatikan populasi ikan — tanpa garis target', body: 'Kamu akan menemukan batasnya sendiri melalui konsekuensi.' },
+            { icon: '📝', title: 'Atur δ (kesabaran) sebelum mulai', body: 'Investor yang tidak sabar mendiskon masa depan — dan cenderung merusak laut.' }
+        ];
+        let tutStep = 0;
+
+        function showTutorialStep() {
+            const step = TUTORIAL_STEPS[tutStep];
+            document.getElementById('tutIcon').textContent = step.icon;
+            document.getElementById('tutTitle').textContent = step.title;
+            document.getElementById('tutBody').textContent = step.body;
+            document.getElementById('tutNext').textContent = tutStep === TUTORIAL_STEPS.length - 1 ? 'Mulai Bermain ✓' : 'Next →';
+        }
+
+        document.getElementById('fabTutorial').addEventListener('click', () => {
+            tutStep = 0;
+            showTutorialStep();
+            document.getElementById('tutorialOverlay').classList.remove('hidden');
+            document.getElementById('fabTutorial').classList.remove('animate-pulse');
+        });
+
+        document.getElementById('tutNext').addEventListener('click', () => {
+            if (tutStep < TUTORIAL_STEPS.length - 1) {
+                tutStep++;
+                showTutorialStep();
+            } else {
+                document.getElementById('tutorialOverlay').classList.add('hidden');
+                localStorage.setItem('tunaTutorialSeen', 'true');
+            }
+        });
+
+        document.getElementById('tutSkip').addEventListener('click', () => {
+            document.getElementById('tutorialOverlay').classList.add('hidden');
+            localStorage.setItem('tunaTutorialSeen', 'true');
+        });
+
+        // Event Listeners
+        document.getElementById('btnPlay').addEventListener('click', playSimulation);
+        document.getElementById('btnPause').addEventListener('click', pauseSimulation);
+        document.getElementById('btnReset').addEventListener('click', resetSimulation);
+        
+        document.getElementById('btnDemo').addEventListener('click', () => {
+            localStorage.removeItem('tunaRunHistory');
+            localStorage.removeItem('tunaTutorialSeen');
+            resetSimulation();
+            fleet = 4;
+            tickSpeedMs = 150;
+            playSimulation();
+        });
+
+        document.getElementById('input_delta').addEventListener('input', (e) => {
+            delta = parseFloat(e.target.value);
+            document.getElementById('label_delta').textContent = (delta * 100).toFixed(0) + '%';
+        });
+
+        // Init
+        if (!localStorage.getItem('tunaTutorialSeen')) {
+            document.getElementById('fabTutorial').classList.add('animate-pulse');
+            setTimeout(() => document.getElementById('fabTutorial').classList.remove('animate-pulse'), 8000);
+        }
+        loadHistory();
+        resetSimulation();
+    </script>
+</body>
+</html>
