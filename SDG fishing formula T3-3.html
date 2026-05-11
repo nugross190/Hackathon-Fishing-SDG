@@ -98,17 +98,29 @@
                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Manajemen Armada</h3>
                         <span id="fleetCountBadge" class="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded">8 / 200 Kapal</span>
                     </div>
-                    <div class="grid grid-cols-2 gap-3 mb-4">
-                        <button id="btnBuyShip" class="flex flex-col items-center justify-center p-3 border-2 border-emerald-100 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                            <span class="text-2xl mb-1">🚢+</span>
-                            <span class="text-[10px] font-bold text-emerald-700 uppercase">Beli Perahu</span>
-                            <span class="text-[10px] text-emerald-600">Rp 120 Juta</span>
-                        </button>
-                        <button id="btnSellShip" class="flex flex-col items-center justify-center p-3 border-2 border-red-100 bg-red-50 hover:bg-red-100 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                            <span class="text-2xl mb-1">🚢−</span>
-                            <span class="text-[10px] font-bold text-red-700 uppercase">Jual Perahu</span>
-                            <span class="text-[10px] text-red-600">Rp 40 Juta</span>
-                        </button>
+                    <div class="space-y-2 mb-4">
+                        <div class="border-2 border-emerald-100 bg-emerald-50 rounded-lg p-2">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <span class="text-[10px] font-bold text-emerald-700 uppercase">🚢+ Beli Perahu</span>
+                                <span id="lblBuyPrice" class="text-[10px] text-emerald-700 font-semibold">Rp 120 Juta/unit</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-1">
+                                <button class="btnBuy bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 rounded disabled:opacity-40 disabled:cursor-not-allowed" data-qty="1">+1</button>
+                                <button class="btnBuy bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 rounded disabled:opacity-40 disabled:cursor-not-allowed" data-qty="10">+10</button>
+                                <button class="btnBuy bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 rounded disabled:opacity-40 disabled:cursor-not-allowed" data-qty="20">+20</button>
+                            </div>
+                        </div>
+                        <div class="border-2 border-red-100 bg-red-50 rounded-lg p-2">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <span class="text-[10px] font-bold text-red-700 uppercase">🚢− Jual Perahu</span>
+                                <span id="lblSellPrice" class="text-[10px] text-red-700 font-semibold">Rp 40 Juta/unit</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-1">
+                                <button class="btnSell bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1.5 rounded disabled:opacity-40 disabled:cursor-not-allowed" data-qty="1">−1</button>
+                                <button class="btnSell bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1.5 rounded disabled:opacity-40 disabled:cursor-not-allowed" data-qty="10">−10</button>
+                                <button class="btnSell bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1.5 rounded disabled:opacity-40 disabled:cursor-not-allowed" data-qty="20">−20</button>
+                            </div>
+                        </div>
                     </div>
                     <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
                         <p class="text-[10px] text-slate-500 font-bold uppercase mb-1">Kas Pelabuhan (10% Pajak Profit)</p>
@@ -152,12 +164,29 @@
                     </div>
                 </div>
 
+                <!-- Year-End Decision Card (auto-shown when yearly pause triggers) -->
+                <div id="yearEndCard" class="hidden bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl p-4 shadow-lg">
+                    <h3 class="font-bold text-sm">📅 Akhir Tahun <span id="yeYear">1</span></h3>
+                    <p class="text-[11px] text-blue-100 mb-2">Apa rencana Anda untuk tahun depan? Atur armada lalu lanjutkan.</p>
+                    <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] mb-3 text-blue-50">
+                        <div>Populasi: <b class="text-white" id="yePop">–</b></div>
+                        <div>Armada: <b class="text-white" id="yeFleet">–</b></div>
+                        <div>Profit Tahun: <b class="text-white" id="yeProfit">–</b></div>
+                        <div>Kas Pelabuhan: <b class="text-white" id="yeBudget">–</b></div>
+                    </div>
+                    <button id="btnContinueYear" class="w-full bg-white text-blue-700 hover:bg-blue-50 font-bold py-2 rounded text-sm">▶ Lanjutkan ke Tahun Berikutnya</button>
+                </div>
+
                 <!-- Playback -->
                 <div class="flex space-x-2">
                     <button id="btnPlay" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-lg shadow-blue-200 transition-all">▶ MULAI</button>
                     <button id="btnPause" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-lg hidden">⏸ PAUSE</button>
                     <button id="btnReset" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-3 rounded-lg">↺ RESET</button>
                 </div>
+                <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer select-none">
+                    <input id="chkYearPause" type="checkbox" checked class="rounded border-slate-400">
+                    <span>Pause otomatis tiap akhir tahun</span>
+                </label>
             </div>
 
             <!-- Right Column: Visualizer -->
@@ -277,6 +306,7 @@
         // Task 1 Metrics
         let cumulativeProfit = 0;
         let npv = 0;
+        let profitAtYearStart = 0; // for annual profit summary at year-end pause
 
         let isRunning = false;
         let timer = null;
@@ -356,8 +386,12 @@
 
             popData.push(currentN);
             updateUI(perFisherMonthly);
-            
-            if (currentTick >= maxTicks || currentN <= 0) endRun();
+
+            if (currentTick >= maxTicks || currentN <= 0) {
+                endRun();
+            } else if (currentTick % 12 === 0 && document.getElementById('chkYearPause').checked) {
+                pauseForYearEnd(perFisherMonthly);
+            }
         }
 
         function updateUI(monthlyIncome) {
@@ -397,11 +431,11 @@
                 }
             }
 
-            // Button States
-            const btnBuy = document.getElementById('btnBuyShip');
-            const btnSell = document.getElementById('btnSellShip');
-            btnBuy.disabled = portBudget < SHIP_COST || fleet >= MAX_FLEET;
-            btnSell.disabled = fleet <= 0;
+            // Button States — bulk buy/sell
+            const canBuy = portBudget >= SHIP_COST && fleet < MAX_FLEET;
+            const canSell = fleet > 0;
+            document.querySelectorAll('.btnBuy').forEach(b => b.disabled = !canBuy);
+            document.querySelectorAll('.btnSell').forEach(b => b.disabled = !canSell);
 
             simChart.data.datasets[0].data = popData;
             simChart.update('none');
@@ -473,10 +507,8 @@
         }
 
         function refreshShipButtonLabels() {
-            const buyBtn = ID('btnBuyShip');
-            const sellBtn = ID('btnSellShip');
-            buyBtn.querySelectorAll('span')[2].textContent = formatJuta(SHIP_COST);
-            sellBtn.querySelectorAll('span')[2].textContent = formatJuta(SHIP_SELL);
+            ID('lblBuyPrice').textContent = `${formatJuta(SHIP_COST)}/unit`;
+            ID('lblSellPrice').textContent = `${formatJuta(SHIP_SELL)}/unit`;
         }
 
         function populateAdminPanel() {
@@ -567,7 +599,10 @@
             // Reset Task 1 Metrics
             cumulativeProfit = 0;
             npv = 0;
+            profitAtYearStart = 0;
             popData = [currentN];
+
+            document.getElementById('yearEndCard').classList.add('hidden');
             
             simChart.options.scales.y.max = params.K * 1.1;
             
@@ -584,6 +619,8 @@
         }
 
         document.getElementById('btnPlay').addEventListener('click', () => {
+            if (isRunning) return;
+            document.getElementById('yearEndCard').classList.add('hidden');
             isRunning = true;
             document.getElementById('btnPlay').classList.add('hidden');
             document.getElementById('btnPause').classList.remove('hidden');
@@ -599,19 +636,63 @@
 
         document.getElementById('btnReset').addEventListener('click', resetSimulation);
 
-        document.getElementById('btnBuyShip').addEventListener('click', () => {
-            if (portBudget >= SHIP_COST && fleet < MAX_FLEET) {
-                portBudget -= SHIP_COST;
-                fleet++;
-                updateUI(cumulativeProfit > 0 ? ((cumulativeProfit * (1 - MGMT_CUT)) / J_FISHERMEN) / (currentTick || 1) : 0); 
-            }
+        function currentMonthlyIncome() {
+            return cumulativeProfit > 0
+                ? ((cumulativeProfit * (1 - MGMT_CUT)) / J_FISHERMEN) / (currentTick || 1)
+                : 0;
+        }
+
+        function buyShips(n) {
+            const maxByBudget = Math.floor(portBudget / SHIP_COST);
+            const maxByCap = MAX_FLEET - fleet;
+            const qty = Math.min(n, maxByBudget, maxByCap);
+            if (qty <= 0) return;
+            portBudget -= qty * SHIP_COST;
+            fleet += qty;
+            updateUI(currentMonthlyIncome());
+        }
+
+        function sellShips(n) {
+            const qty = Math.min(n, fleet);
+            if (qty <= 0) return;
+            portBudget += qty * SHIP_SELL;
+            fleet -= qty;
+            updateUI(currentMonthlyIncome());
+        }
+
+        document.querySelectorAll('.btnBuy').forEach(btn => {
+            btn.addEventListener('click', () => buyShips(parseInt(btn.dataset.qty, 10)));
+        });
+        document.querySelectorAll('.btnSell').forEach(btn => {
+            btn.addEventListener('click', () => sellShips(parseInt(btn.dataset.qty, 10)));
         });
 
-        document.getElementById('btnSellShip').addEventListener('click', () => {
-            if (fleet > 0) {
-                portBudget += SHIP_SELL;
-                fleet--;
-                updateUI(cumulativeProfit > 0 ? ((cumulativeProfit * (1 - MGMT_CUT)) / J_FISHERMEN) / (currentTick || 1) : 0);
+        // ---- Yearly pause / decision card ----
+        function pauseForYearEnd(monthlyIncome) {
+            isRunning = false;
+            clearInterval(timer);
+            document.getElementById('btnPause').classList.add('hidden');
+            document.getElementById('btnPlay').classList.remove('hidden');
+
+            const year = currentTick / 12;
+            const profitThisYear = cumulativeProfit - profitAtYearStart;
+            profitAtYearStart = cumulativeProfit;
+
+            ID('yeYear').textContent = year;
+            ID('yePop').textContent = Math.round(currentN / params.K * 100) + '%';
+            ID('yeProfit').textContent = formatIDR(profitThisYear);
+            ID('yeFleet').textContent = `${fleet} kapal`;
+            ID('yeBudget').textContent = formatIDR(portBudget);
+            ID('yearEndCard').classList.remove('hidden');
+        }
+
+        ID('btnContinueYear').addEventListener('click', () => {
+            ID('yearEndCard').classList.add('hidden');
+            if (!isRunning && currentTick < maxTicks && currentN > 0) {
+                isRunning = true;
+                document.getElementById('btnPlay').classList.add('hidden');
+                document.getElementById('btnPause').classList.remove('hidden');
+                timer = setInterval(stepMonth, 300);
             }
         });
 
