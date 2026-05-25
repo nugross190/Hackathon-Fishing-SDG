@@ -549,10 +549,10 @@
             <p id="reflSummary" class="text-sm text-slate-500 mb-4"></p>
 
             <!-- Run stats strip -->
-            <div id="reflArchetype" class="hidden"></div>
             <div id="reflStats" class="grid grid-cols-2 gap-3 mb-5 text-sm">
                 <!-- Populated by JS -->
             </div>
+            <div id="reflArchetype" class="hidden"></div>
 
             <!-- Welfare Evaluation -->
             <div id="reflEval" class="hidden"></div>
@@ -1179,6 +1179,19 @@
                 events: runEvents, cumProfit: cumulativeProfit, collapsed: currentN <= 0,
                 scenario: activeScenario
             });
+
+            const ARCH_META = {
+                greedy:         { label: '🔴 Greedy — Terlalu Agresif',          cls: 'bg-red-50 text-red-800 border border-red-200' },
+                overconserving: { label: '🟡 Over-Conserving — Terlalu Hati-hati', cls: 'bg-amber-50 text-amber-800 border border-amber-200' },
+                chaotic:        { label: '🟣 Chaotic — Tanpa Strategi',           cls: 'bg-purple-50 text-purple-800 border border-purple-200' },
+                balanced:       { label: '🟢 Balanced — Berkelanjutan',           cls: 'bg-teal-50 text-teal-800 border border-teal-200' }
+            };
+            const meta = ARCH_META[archetype];
+            const archetypeEl = document.getElementById('reflArchetype');
+            archetypeEl.className = `mb-4 p-3 rounded-lg text-sm font-semibold ${meta.cls}`;
+            archetypeEl.textContent = `Gaya bermain: ${meta.label}`;
+            archetypeEl.classList.remove('hidden');
+
             // Welfare Evaluation Logic
             const evalEl = document.getElementById('reflEval');
             let evalText = '';
@@ -1218,6 +1231,7 @@
             saveRunHistory(text);
             unlockNextStage(activeScenario);
             document.getElementById('reflectionModal').classList.add('hidden');
+            // AI feedback will go here — next step
         });
         function endRun() {
             isRunning = false;
@@ -1448,16 +1462,6 @@
             document.getElementById('genStatus').textContent = `\u2713 ${n * 7} run contoh ditambahkan.`;
         });
         function classifyRun(run) {
-            const ARCH_META = {
-                greedy: { label: '🔴 Greedy — Terlalu Agresif', cls: 'bg-red-50 text-red-800 border border-red-200' },
-                overconserving: { label: '🟡 Over-Conserving — Terlalu Hati-hati', cls: 'bg-amber-50 text-amber-800 border border-amber-200' },
-                chaotic: { label: '🟣 Chaotic — Tanpa Strategi', cls: 'bg-purple-50 text-purple-800 border border-purple-200' },
-                balanced: { label: '🟢 Balanced — Berkelanjutan', cls: 'bg-teal-50 text-teal-800 border border-teal-200' }
-            };
-            const meta = ARCH_META[archetype];
-            document.getElementById('reflArchetype').className = `mb-4 p-3 rounded-lg text-sm font-semibold ${meta.cls}`;
-            document.getElementById('reflArchetype').textContent = `Gaya bermain: ${meta.label}`;
-            document.getElementById('reflArchetype').classList.remove('hidden');
             const { finalPopPct, peakFleet, finalFleet, events, cumProfit, collapsed } = run;
             const initFleet = SCENARIOS[run.scenario]?.initFleet ?? 4;
 
