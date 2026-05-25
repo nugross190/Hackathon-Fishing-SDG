@@ -1,0 +1,1881 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Belajar Pengelolaan Perikanan Berkelanjutan untuk SDG 14 dengan Simulator Bio-Ekonomi Knovera.">
+    <title>Knovera — Simulator Ekonomi Perikanan Indonesia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><path d=%22M10,50 Q50,10 90,50 Q50,90 10,50 Z%22 fill=%22%232563eb%22/></svg>">
+    <style>
+        @keyframes wave {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            50% {
+                transform: translateX(-15px);
+            }
+        }
+
+        .wave-anim {
+            animation: wave 8s infinite ease-in-out;
+        }
+
+        .house-glow {
+            filter: drop-shadow(0 0 4px rgba(250, 204, 21, 0.9));
+        }
+
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .tut-highlight {
+            position: relative;
+            z-index: 55 !important;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.5), 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;
+            border-radius: 0.75rem;
+            background-color: white;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 font-sans antialiased relative">
+
+    <header class="bg-blue-900 text-white shadow-md relative z-10">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight">Knovera Time-lapse Simulator</h1>
+                <p class="text-blue-200 text-xs">Belajar Pengelolaan Perikanan Berkelanjutan untuk SDG 14</p>
+            </div>
+            <div class="text-right flex items-center gap-2">
+                <span id="timeBadge"
+                    class="px-3 py-1 rounded-full text-sm font-bold bg-blue-800 border border-blue-400">Tahun 0 Bulan
+                    1</span>
+                <button id="btnAdmin"
+                    class="px-2 py-1 rounded text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white border border-amber-300"
+                    title="Admin tuning panel">🔧 Admin</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ═══════════════ ADMIN PANEL ═══════════════ -->
+    <section id="adminPanel" class="hidden bg-amber-50 border-y-2 border-amber-300 relative z-10">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex justify-between items-center mb-2">
+                <div>
+                    <h2 class="text-sm font-bold text-amber-900">🔧 Admin Tuning Panel</h2>
+                    <p class="text-[10px] text-amber-700">Edit parameter lalu klik <b>Apply &amp; Reset Sim</b>.</p>
+                </div>
+                <button id="btnAdminClose" class="text-amber-800 hover:text-amber-900 text-lg font-bold">✕</button>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+                <!-- Populasi -->
+                <fieldset class="bg-white rounded p-2 border border-amber-200">
+                    <legend class="font-bold uppercase text-[10px] text-amber-800 px-1">Populasi (Schaefer)</legend>
+                    <label class="block mt-1">r (pertumbuhan tahunan)<input id="adm_r" type="number" step="0.01"
+                            class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">K (ton, daya dukung)<input id="adm_K" type="number" step="10000"
+                            class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">q (catchability)<input id="adm_q" type="number" step="0.000001"
+                            class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                </fieldset>
+
+                <!-- Bio-Ekonomi -->
+                <fieldset class="bg-white rounded p-2 border border-amber-200">
+                    <legend class="font-bold uppercase text-[10px] text-amber-800 px-1">Bio-Ekonomi</legend>
+                    <label class="block mt-1">P (Rp/ton harga ikan)<input id="adm_P" type="number" step="100000"
+                            class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">c (Rp per unit effort)<input id="adm_c" type="number" step="10000"
+                            class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">δ (discount tahunan)<input id="adm_delta" type="number" step="0.01"
+                            class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">Pajak mgmt (0–1)<input id="adm_mgmt" type="number" step="0.01" min="0"
+                            max="1" class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1 text-blue-800 font-semibold">⚓ Biaya pelabuhan/kapal/bln<input
+                            id="adm_harborFee" type="number" step="100000"
+                            class="w-full p-1 border border-blue-300 rounded tabular-nums bg-blue-50"></label>
+                </fieldset>
+
+                <!-- Armada -->
+                <fieldset class="bg-white rounded p-2 border border-amber-200">
+                    <legend class="font-bold uppercase text-[10px] text-amber-800 px-1">Armada</legend>
+                    <label class="block mt-1">Harga beli (Rp)<input id="adm_shipCost" type="number" step="5000000"
+                            class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">Harga jual (Rp)<input id="adm_shipSell" type="number" step="5000000"
+                            class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">Perawatan/thn (Rp)<input id="adm_shipMaint" type="number" step="1000000"
+                            class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">Effort/kapal/thn<input id="adm_effortPerShip" type="number" step="10"
+                            class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">Max armada<input id="adm_maxFleet" type="number" step="1"
+                            class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                </fieldset>
+
+                <!-- Skenario & Armada Awal -->
+                <fieldset class="bg-white rounded p-2 border border-amber-200">
+                    <legend class="font-bold uppercase text-[10px] text-amber-800 px-1">Skenario Awal</legend>
+                    <label class="block mt-1">Armada awal<input id="adm_initFleet" type="number" step="1"
+                            class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">Kas awal (Rp)<input id="adm_initBudget" type="number" step="10000000"
+                            class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">Start N/K (0–1)<input id="adm_startN" type="number" step="0.05" min="0"
+                            max="1" class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                </fieldset>
+
+                <!-- Komunitas -->
+                <fieldset class="bg-white rounded p-2 border border-amber-200">
+                    <legend class="font-bold uppercase text-[10px] text-amber-800 px-1">Komunitas &amp; Welfare</legend>
+                    <label class="block mt-1">Jumlah nelayan<input id="adm_jFish" type="number" step="100"
+                            class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1">UMR nelayan (Rp/bln)<input id="adm_umr" type="number" step="100000"
+                            class="w-full p-1 border border-slate-300 rounded tabular-nums"></label>
+                    <label class="block mt-1 text-blue-800 font-semibold">👔 Jumlah staf admin<input id="adm_jAdmin"
+                            type="number" step="1"
+                            class="w-full p-1 border border-blue-300 rounded tabular-nums bg-blue-50"></label>
+                    <label class="block mt-1 text-blue-800 font-semibold">👔 Gaji admin/bln (Rp)<input
+                            id="adm_adminSalary" type="number" step="100000"
+                            class="w-full p-1 border border-blue-300 rounded tabular-nums bg-blue-50"></label>
+                </fieldset>
+            </div>
+
+            <div class="mt-3 pt-3 border-t border-amber-200 flex items-center gap-2 flex-wrap">
+                <span class="text-[10px] font-bold uppercase text-amber-800">🧪 Data Contoh (untuk uji agent)</span>
+                <label class="text-[11px] text-amber-900">Cohort per gaya
+                    <input id="genCohort" type="number" min="1" max="6" value="1"
+                        class="w-12 p-1 border border-amber-300 rounded tabular-nums text-center ml-1">
+                </label>
+                <button id="btnGenSamples"
+                    class="bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs px-3 py-2 rounded">Generate Sample
+                    Runs</button>
+                <span id="genStatus" class="text-[10px] text-teal-700"></span>
+            </div>
+
+            <div class="flex gap-2 mt-3">
+                <button id="btnAdminApply"
+                    class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-4 py-2 rounded">Apply &amp;
+                    Reset Sim</button>
+                <button id="btnAdminDefaults"
+                    class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs px-4 py-2 rounded">Restore
+                    Defaults</button>
+                <span id="adminStatus" class="text-[10px] text-amber-700 self-center"></span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════ MAIN ═══════════════ -->
+    <main class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 relative z-10">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Left Column -->
+            <div class="lg:col-span-4 space-y-4">
+
+                <!-- Scenario selector -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                    <label class="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Pilih
+                        Skenario</label>
+                    <select id="scenarioSelect"
+                        class="w-full p-2 border border-slate-300 rounded-lg text-sm font-semibold text-blue-900 bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <!-- Options generated by renderScenarioSelector() -->
+                    </select>
+                </div>
+
+                <!-- Fleet management -->
+                <div id="fleetCard" class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Manajemen Armada</h3>
+                        <span id="fleetCountBadge"
+                            class="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded">4 / 200
+                            Kapal</span>
+                    </div>
+                    <div id="fleetSection" class="space-y-2 mb-4">
+                        <div class="border-2 border-emerald-100 bg-emerald-50 rounded-lg p-2">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <span class="text-[10px] font-bold text-emerald-700 uppercase">🚢+ Beli Perahu</span>
+                                <span id="lblBuyPrice" class="text-[10px] text-emerald-700 font-semibold">Rp 100
+                                    Juta/unit</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-1">
+                                <button
+                                    class="btnBuy bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                                    data-qty="1">+1</button>
+                                <button
+                                    class="btnBuy bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                                    data-qty="5">+5</button>
+                                <button
+                                    class="btnBuy bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                                    data-qty="10">+10</button>
+                            </div>
+                        </div>
+                        <div class="border-2 border-red-100 bg-red-50 rounded-lg p-2">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <span class="text-[10px] font-bold text-red-700 uppercase">🚢− Jual Perahu</span>
+                                <span id="lblSellPrice" class="text-[10px] text-red-700 font-semibold">Rp 40
+                                    Juta/unit</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-1">
+                                <button
+                                    class="btnSell bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1.5 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                                    data-qty="1">−1</button>
+                                <button
+                                    class="btnSell bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1.5 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                                    data-qty="5">−5</button>
+                                <button
+                                    class="btnSell bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1.5 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                                    data-qty="10">−10</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Port budget -->
+                    <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <p class="text-[10px] text-slate-500 font-bold uppercase mb-1">Kas Armada <span
+                                class="normal-case font-normal text-slate-400">(pajak − gaji admin − biaya
+                                pelabuhan)</span></p>
+                        <p id="valBudget" class="text-lg font-bold text-blue-700 tabular-nums">Rp 0</p>
+                    </div>
+                </div>
+
+                <!-- Admin Salary Control -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Gaji Admin</h3>
+                    <div class="flex bg-slate-100 rounded-lg p-1">
+                        <label class="flex-1 text-center cursor-pointer relative">
+                            <input type="radio" name="adminSalary" value="1.0" class="peer sr-only" checked>
+                            <div
+                                class="py-2 rounded-md text-xs font-bold text-slate-500 peer-checked:bg-white peer-checked:text-blue-700 peer-checked:shadow-sm transition-all">
+                                Standar
+                                <span class="block text-[9px] font-normal text-slate-400 mt-0.5">100% UMR — staf
+                                    puas</span>
+                            </div>
+                        </label>
+                        <label class="flex-1 text-center cursor-pointer relative">
+                            <input type="radio" name="adminSalary" value="0.8" class="peer sr-only">
+                            <div
+                                class="py-2 rounded-md text-xs font-bold text-slate-500 peer-checked:bg-white peer-checked:text-blue-700 peer-checked:shadow-sm transition-all">
+                                Hemat
+                                <span class="block text-[9px] font-normal text-slate-400 mt-0.5">80% UMR — staf
+                                    cukup</span>
+                            </div>
+                        </label>
+                        <label class="flex-1 text-center cursor-pointer relative">
+                            <input type="radio" name="adminSalary" value="0.6" class="peer sr-only">
+                            <div
+                                class="py-2 rounded-md text-xs font-bold text-slate-500 peer-checked:bg-white peer-checked:text-blue-700 peer-checked:shadow-sm transition-all">
+                                Minimum
+                                <span class="block text-[9px] font-normal text-slate-400 mt-0.5">60% UMR — batas
+                                    min</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- ═══ Laba–Rugi (P&L) Panel ═══ -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">📊 Laba–Rugi Bulan Ini
+                        </h3>
+                        <button class="info-btn text-slate-400 hover:text-blue-600 transition-colors" data-info="pnl">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Pendapatan -->
+                    <div class="flex justify-between items-baseline py-1">
+                        <span class="text-sm text-slate-600">Pendapatan</span>
+                        <span id="valRevenue" class="text-sm font-bold text-emerald-600 tabular-nums">Rp 0</span>
+                    </div>
+
+                    <!-- Biaya operasional (klik untuk rincian) -->
+                    <button id="opexToggle" class="w-full flex justify-between items-baseline py-1">
+                        <span class="text-sm text-slate-600 flex items-center gap-1">
+                            <span id="opexCaret"
+                                class="text-slate-400 text-xs inline-block transition-transform">▸</span>
+                            Biaya Operasional
+                        </span>
+                        <span class="text-sm font-bold text-red-500 tabular-nums">−&nbsp;<span id="valOpex">Rp
+                                0</span></span>
+                    </button>
+                    <div id="opexBreakdown" class="hidden pl-4 border-l-2 border-slate-100 ml-1 space-y-1 py-1">
+                        <div class="flex justify-between text-xs text-slate-500">
+                            <span>⛽ Bahan Bakar (BBM)</span><span id="valFuel" class="tabular-nums">Rp 0</span>
+                        </div>
+                        <div class="flex justify-between text-xs text-slate-500">
+                            <span>🎣 Perbekalan &amp; Awak</span><span id="valSupplies" class="tabular-nums">Rp 0</span>
+                        </div>
+                        <div class="flex justify-between text-xs text-slate-500">
+                            <span>🔧 Perawatan Kapal</span><span id="valMaint" class="tabular-nums">Rp 0</span>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-dashed border-slate-300 my-2"></div>
+
+                    <!-- Profit bersih -->
+                    <div class="flex justify-between items-baseline">
+                        <span class="text-sm font-bold text-slate-700">Profit Bersih</span>
+                        <span id="valNetProfit" class="text-xl font-extrabold text-blue-700 tabular-nums">Rp 0</span>
+                    </div>
+
+                    <!-- Kumulatif (footnote) -->
+                    <div class="flex justify-between items-center mt-2 pt-2 border-t border-slate-100">
+                        <span class="text-[10px] text-slate-400 uppercase tracking-wider">💰 Total Terkumpul</span>
+                        <span id="valCumProfit" class="text-xs font-bold text-pink-600 tabular-nums">Rp 0</span>
+                    </div>
+                </div>
+
+                <!-- ═══ Populasi Ikan (Ton) ═══ -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">🐟 Populasi Ikan</h3>
+                        <span id="popDelta" class="text-[11px] font-bold tabular-nums text-slate-300">—</span>
+                    </div>
+                    <p id="valPopTon" class="text-2xl font-extrabold text-blue-600 mt-1 tabular-nums">0 ton</p>
+                    <div class="mt-2 h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div id="popBar" class="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                            style="width:100%"></div>
+                    </div>
+                    <p id="popRef" class="text-[10px] text-slate-400 mt-1">dari kapasitas sehat 0 ton</p>
+                </div>
+
+                <!-- ═══ Kesejahteraan (Welfare) ═══ -->
+                <div id="welfareCards" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="flex gap-3">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Upah Nelayan / Bln
+                                <span id="lblFishCount" class="normal-case font-normal">(1.500 org)</span>
+                            </p>
+                            <p id="valWelfare" class="text-xl font-bold mt-1 tabular-nums text-slate-800">Rp 0</p>
+                            <p id="welfareSubtitle" class="text-[10px] mt-0.5 font-semibold text-slate-500">Menunggu
+                                simulasi...</p>
+                        </div>
+                        <div class="w-px bg-slate-200 self-stretch"></div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Upah Admin <span
+                                    id="lblAdminCount" class="normal-case font-normal">(20 staf)</span></p>
+                            <p id="valAdminWage" class="text-xl font-bold mt-1 tabular-nums text-slate-700">Rp 0</p>
+                            <p id="adminWageSubtitle" class="text-[10px] mt-0.5 font-semibold text-slate-500">Menunggu
+                                simulasi...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══ Konteks (counts) ═══ -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm text-center">
+                        <p class="text-[10px] text-slate-500 font-bold uppercase">Total Komunitas</p>
+                        <p id="valCrew" class="text-lg font-bold text-slate-700">1.520 Orang</p>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm text-center">
+                        <p class="text-[10px] text-slate-500 font-bold uppercase">Armada Aktif</p>
+                        <p id="valFleetMetric" class="text-lg font-bold text-slate-700">4 Kapal</p>
+                    </div>
+                </div>
+
+                <!-- Year-end card -->
+                <div id="yearEndCard"
+                    class="hidden bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl p-4 shadow-lg">
+                    <h3 class="font-bold text-sm">📅 Akhir Tahun <span id="yeYear">1</span></h3>
+                    <p class="text-[11px] text-blue-100 mb-2">Atur armada lalu lanjutkan tahun berikutnya.</p>
+                    <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] mb-3 text-blue-50">
+                        <div>Populasi: <b class="text-white" id="yePop">–</b></div>
+                        <div>Armada: <b class="text-white" id="yeFleet">–</b></div>
+                        <div>Profit Tahun: <b class="text-white" id="yeProfit">–</b></div>
+                        <div>Kas Armada: <b class="text-white" id="yeBudget">–</b></div>
+                        <div>Upah Nelayan: <b class="text-white" id="yeWelfare">–</b></div>
+                        <div>Upah Admin: <b class="text-white" id="yeAdmin">–</b></div>
+                    </div>
+                    <button id="btnContinueYear"
+                        class="w-full bg-white text-blue-700 hover:bg-blue-50 font-bold py-2 rounded text-sm">▶
+                        Lanjutkan ke Tahun Berikutnya</button>
+                </div>
+
+                <!-- Playback -->
+                <div class="flex space-x-2">
+                    <button id="btnPlay"
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-lg shadow-blue-200 transition-all">▶
+                        MULAI</button>
+                    <button id="btnPause"
+                        class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-lg hidden">⏸
+                        PAUSE</button>
+                    <button id="btnReset"
+                        class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-3 rounded-lg">↺
+                        RESET</button>
+                    <button id="btnDemo"
+                        class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg shadow-lg shadow-purple-200 transition-all">✨
+                        DEMO</button>
+                </div>
+                <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer select-none">
+                    <input id="chkYearPause" type="checkbox" checked class="rounded border-slate-400">
+                    <span>Pause otomatis tiap akhir tahun</span>
+                </label>
+            </div>
+
+            <!-- Right Column: Visualizer -->
+            <div class="lg:col-span-8 space-y-4">
+                <div id="scenarioBanner" class="bg-blue-50 border-l-4 border-blue-600 rounded-r-lg p-3 shadow-sm">
+                    <div class="flex items-start gap-3">
+                        <span class="text-lg leading-none mt-0.5">🎯</span>
+                        <div class="flex-1 min-w-0">
+                            <p id="scenarioBannerTitle"
+                                class="text-xs font-bold text-blue-900 uppercase tracking-wider"></p>
+                            <p id="scenarioBannerText" class="text-sm text-slate-700 mt-0.5 leading-snug"></p>
+                            <p id="scenarioBannerHint" class="text-[10px] text-blue-700 mt-1 font-mono"></p>
+                        </div>
+                    </div>
+                </div>
+                <section id="oceanScene"
+                    class="w-full h-[260px] bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative">
+                    <svg width="100%" height="100%" viewBox="0 0 800 260" preserveAspectRatio="xMidYMid slice">
+                        <defs>
+                            <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#bae6fd" />
+                                <stop offset="100%" stop-color="#7dd3fc" />
+                            </linearGradient>
+                            <symbol id="house" viewBox="0 0 20 20">
+                                <path d="M2,10 L10,2 L18,10 L18,18 L2,18 Z" fill="currentColor" />
+                                <rect x="8" y="12" width="4" height="6" fill="#475569" />
+                            </symbol>
+                            <symbol id="smallBoat" viewBox="0 0 40 25">
+                                <path d="M5,12 L35,12 L30,22 L10,22 Z" fill="#92400e" />
+                                <path d="M20,12 L20,4 L28,10 Z" fill="#1e3a8a" />
+                            </symbol>
+                        </defs>
+                        <rect x="0" y="0" width="800" height="100" fill="url(#skyGrad)" />
+                        <rect x="0" y="100" width="800" height="160" fill="#3b82f6" />
+                        <path d="M0,80 Q180,90 240,140 L240,260 L0,260 Z" fill="#10b981" />
+                        <rect x="220" y="130" width="80" height="12" fill="#64748b" />
+                        <g id="villageGroup" class="text-slate-100"></g>
+                        <g class="wave-anim">
+                            <path d="M240,160 Q450,150 800,160 L800,260 L240,260 Z" fill="#2563eb" opacity="0.3" />
+                        </g>
+                        <g id="fishLayer"></g>
+                        <g id="boatLayer"></g>
+                    </svg>
+                </section>
+
+                <div id="chartCard" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                    <div class="h-[280px]">
+                        <canvas id="simChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Run History Section -->
+                <div id="historySection" class="bg-white rounded-xl shadow-sm border border-slate-200 mt-4">
+                    <div class="w-full flex justify-between items-center p-4">
+                        <button id="historyToggle" class="flex items-center gap-2 text-sm font-bold text-slate-700">
+                            <span>📋 Riwayat Simulasi</span>
+                            <span id="historyCount" class="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">0
+                                run</span>
+                        </button>
+                        <div class="flex items-center gap-2">
+                            <button id="btnDownloadRuns"
+                                class="text-[11px] font-bold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded"
+                                title="Unduh dataset JSON untuk analisis agent">⤓ JSON</button>
+                            <button id="btnClearRuns"
+                                class="text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded"
+                                title="Hapus semua riwayat run">🗑</button>
+                        </div>
+                    </div>
+                    <div id="historyTable" class="hidden overflow-x-auto px-4 pb-4">
+                        <!-- table rendered by renderRunHistory() -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="max-w-7xl mx-auto px-4 py-8 text-center text-slate-500 text-xs relative z-10">
+        <span id="teamCreditLine"></span> ·
+        <button id="btnRestartTutorial" class="text-blue-600 hover:underline font-semibold">Restart Tutorial</button>
+    </footer>
+
+    <!-- Welcome Modal -->
+    <div id="welcomeModal" class="hidden fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
+            <div class="text-5xl mb-4">🎣</div>
+            <h2 class="text-2xl font-bold text-slate-800 mb-2">Kamu adalah Manajer Pelabuhan</h2>
+            <p class="text-sm text-slate-600 mb-6 leading-relaxed">
+                Sebuah komunitas nelayan mempercayakanmu untuk mengelola bisnis perikanan di daerah mereka. 1.500
+                nelayan dan 20 staf administrasi bergantung pada keputusanmu selama 10 tahun ke depan.
+            </p>
+            <button id="btnStartTour"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-200">Mulai
+                Tur</button>
+            <button id="btnSkipTour" class="mt-4 text-sm font-semibold text-slate-400 hover:text-slate-600">Lewati
+                Tur</button>
+        </div>
+    </div>
+
+    <!-- Tutorial Backdrop & Tooltip -->
+    <div id="tutorialOverlay" class="hidden fixed inset-0 bg-slate-900/60 z-[50]"></div>
+    <div id="tutorialTooltip"
+        class="hidden absolute z-[60] bg-white rounded-xl shadow-2xl p-5 max-w-[300px] border border-slate-100">
+        <h4 id="tutTitle" class="font-bold text-blue-900 mb-2 text-sm">Title</h4>
+        <p id="tutText" class="text-xs text-slate-600 mb-5 leading-relaxed">Description</p>
+        <div class="flex justify-between items-center">
+            <button id="tutSkip" class="text-xs text-slate-400 hover:text-slate-600 font-semibold">Lewati</button>
+            <div class="flex items-center space-x-3">
+                <span id="tutProgress" class="text-[10px] text-slate-400 font-bold tracking-widest">1/3</span>
+                <button id="tutNext"
+                    class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg">Lanjut
+                    ➔</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Popover -->
+    <div id="infoPopover"
+        class="hidden absolute z-[70] bg-slate-800 text-white text-xs rounded-lg p-3 shadow-xl w-64 pointer-events-none transition-opacity">
+    </div>
+
+    <!-- Reflection Modal -->
+    <div id="reflectionModal" class="hidden fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8">
+            <h2 class="text-xl font-bold text-slate-800 mb-1">Simulasi Selesai</h2>
+            <p id="reflSummary" class="text-sm text-slate-500 mb-4"></p>
+
+            <!-- Run stats strip -->
+            <div id="reflArchetype" class="hidden"></div>
+            <div id="reflStats" class="grid grid-cols-2 gap-3 mb-5 text-sm">
+                <!-- Populated by JS -->
+            </div>
+
+            <!-- Welfare Evaluation -->
+            <div id="reflEval" class="hidden"></div>
+
+            <!-- Reflection prompts -->
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Refleksi</p>
+            <p id="reflPrompt" class="text-sm text-slate-600 mb-3 leading-relaxed"></p>
+            <textarea id="reflTextarea" rows="4"
+                class="w-full border border-slate-200 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="Tulis jawabanmu di sini..."></textarea>
+
+            <button id="reflSaveBtn"
+                class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all">
+                Simpan & Lanjut
+            </button>
+        </div>
+    </div>
+
+    <!-- Stage Intro Modal -->
+    <div id="stageIntroModal" class="hidden fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
+            <div id="stageIntroEmoji" class="text-5xl mb-4"></div>
+            <h2 id="stageIntroTitle" class="text-xl font-bold text-slate-800 mb-3"></h2>
+            <p id="stageIntroBody" class="text-sm text-slate-600 mb-4 leading-relaxed text-left whitespace-pre-line">
+            </p>
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-left">
+                <p class="text-xs font-bold text-blue-800 uppercase tracking-wider mb-1">Tantanganmu</p>
+                <p id="stageIntroChallenge" class="text-sm text-blue-900"></p>
+            </div>
+            <button id="stageIntroBtn"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl">
+                Mulai Tantangan
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════════════ SCRIPT ═══════════════ -->
+    <script>
+        // ══════════════════════════════════════════════
+        // GLOBAL CONSTANTS & CONFIG
+        // ══════════════════════════════════════════════
+        const TEAM_CREDIT = "Tim Knovera © 2026";
+        document.getElementById('teamCreditLine').textContent = TEAM_CREDIT;
+
+        const UMR_MONTHLY_DEFAULT = 2_500_000;
+
+        // Community
+        let J_FISHERMEN = 1_500;
+        let UMR_MONTHLY = UMR_MONTHLY_DEFAULT;
+
+        // Port staff
+        let J_ADMIN = 20;
+        let ADMIN_SALARY = 2_500_000;
+
+        // Fleet economics
+        let MGMT_CUT = 0.07;
+        let MAX_FLEET = 200;
+        let SHIP_COST = 100_000_000;
+        let SHIP_SELL = 40_000_000;
+        let SHIP_MAINT = 20_000_000;
+        let HARBOR_FEE_PER_SHIP = 7_841_667;
+
+        let q = 0.00008;
+        let EFFORT_PER_SHIP = 1_000;
+
+        // Pemecahan biaya operasional variabel:  c = tarif BBM + tarif Perbekalan.
+        // SUPPLIES_RATE dijaga konstan; sisanya (c − SUPPLIES_RATE) menjadi tarif BBM.
+        // Akibatnya, kenaikan c pada skenario Krisis BBM seluruhnya membebani garis
+        // Bahan Bakar — total opex tetap identik dengan model lama (c × E).
+        let SUPPLIES_RATE = 240_000;
+        const maxTicks = 120; // 10 Tahun * 12 Bulan
+        let delta = 0.05;
+
+        let tickSpeedMs = 300; // Default speed
+
+        // ──────────────────────────────────────────────
+        // SCENARIOS
+        // ──────────────────────────────────────────────
+        const SCENARIOS = {
+            normal: {
+                label: 'Kondisi Normal',
+                banner: 'Laut sehat, harga ikan normal, biaya operasional wajar. Mulai dengan 4 kapal — eksplorasi bebas, temukan polanya.',
+                twist: 'Baseline — semua parameter default',
+                params: { P: 1_500_000, c: 600_000, r: 0.4, K: 450_000 },
+                initFleet: 4,
+                initBudget: 250_000_000,
+                startN_ratio: 1.0
+            },
+            elnino: {
+                label: 'El Niño',
+                banner: 'Suhu laut naik akibat anomali iklim. Ikan tumbuh lebih lambat dari biasanya. Apakah strategi armadamu tetap berhasil?',
+                twist: 'r turun: 0.4 → 0.2 (reproduksi ikan separuh dari normal)',
+                params: { P: 1_500_000, c: 600_000, r: 0.2, K: 450_000 },
+                initFleet: 4,
+                initBudget: 250_000_000,
+                startN_ratio: 1.0
+            },
+            bbm: {
+                label: 'Krisis BBM',
+                banner: 'Harga solar melonjak. Biaya melaut hampir dua kali lipat. Cari titik di mana melaut masih menguntungkan.',
+                twist: 'c naik: Rp 600rb → Rp 1,1jt per unit effort',
+                params: { P: 1_500_000, c: 1_100_000, r: 0.4, K: 450_000 },
+                initFleet: 4,
+                initBudget: 250_000_000,
+                startN_ratio: 1.0
+            },
+            elnino_bbm: {
+                label: 'El Niño + Krisis BBM',
+                banner: 'Dua tekanan sekaligus: harga solar masih tinggi, dan anomali iklim El Niño membuat ikan berkembang biak jauh lebih lambat.',
+                twist: 'r turun ke 0.2 (El Niño) + c naik ke Rp 1,1jt (BBM)',
+                params: { P: 1_500_000, c: 1_100_000, r: 0.2, K: 450_000 },
+                initFleet: 4,
+                initBudget: 250_000_000,
+                startN_ratio: 1.0
+            },
+            overfished: {
+                label: 'Warisan Overfishing',
+                banner: 'Pendahulu meninggalkan pelabuhan dengan 50 kapal di laut yang hanya tersisa 20% populasinya. Pulihkan, atau panen sebelum habis?',
+                twist: 'Mulai N = 20% K, armada awal 50 kapal, kas terbatas',
+                params: { P: 1_500_000, c: 600_000, r: 0.4, K: 450_000 },
+                initFleet: 50,
+                initBudget: 100_000_000,
+                startN_ratio: 0.2
+            }
+        };
+
+        const ADMIN_DEFAULTS = {
+            J_FISHERMEN, UMR_MONTHLY, J_ADMIN, ADMIN_SALARY,
+            MGMT_CUT, MAX_FLEET,
+            SHIP_COST, SHIP_SELL, SHIP_MAINT, HARBOR_FEE_PER_SHIP,
+            q, EFFORT_PER_SHIP, delta,
+            scenarios: JSON.parse(JSON.stringify(SCENARIOS))
+        };
+
+        // ──────────────────────────────────────────────
+        // STAGE GATE SYSTEM & STATE
+        // ──────────────────────────────────────────────
+        const STAGE_ORDER = ['normal', 'bbm', 'elnino_bbm', 'overfished'];
+        let unlockedStages = ['normal'];
+        let completedStages = [];
+
+        const savedProgress = localStorage.getItem('knoversaStageProgress');
+        if (savedProgress) {
+            const parsed = JSON.parse(savedProgress);
+            unlockedStages = parsed.unlockedStages || ['normal'];
+            completedStages = parsed.completedStages || [];
+        }
+
+        let activeScenario = 'normal';
+        let params = { ...SCENARIOS.normal.params };
+        let currentN = params.K;
+        let currentTick = 0;
+        let fleet = SCENARIOS.normal.initFleet;
+        let portBudget = SCENARIOS.normal.initBudget;
+        let cumulativeProfit = 0;
+        let npv = 0;
+        let profitAtYearStart = 0;
+        let isRunning = false;
+        let timer = null;
+        let popData = [];
+        let wageData = [];
+        let runEvents = [];          // jejak keputusan beli/jual (learning-path)
+        let peakFleet = 4;           // armada puncak dalam satu run
+        let lastMonthlyWage = 0;
+        let lastAdminWage = 0;
+        let lastRevenue = 0, lastFuel = 0, lastSupplies = 0,
+            lastMaint = 0, lastOpex = 0, lastNetProfit = 0,
+            lastDeltaN = 0;
+        let adminSalaryRatio = 1.0;
+
+        const formatIDR = (val) => new Intl.NumberFormat('id-ID', {
+            style: 'currency', currency: 'IDR', maximumFractionDigits: 0
+        }).format(val);
+
+        const formatJuta = (rp) =>
+            `Rp ${(rp / 1_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} Juta`;
+
+        // Rupiah ringkas: pilih rb / Jt / M / T agar angka besar tetap terbaca.
+        function formatShortIDR(rp) {
+            const a = Math.abs(rp);
+            if (a >= 1e12) return `Rp ${(rp / 1e12).toLocaleString('id-ID', { maximumFractionDigits: 2 })} T`;
+            if (a >= 1e9) return `Rp ${(rp / 1e9).toLocaleString('id-ID', { maximumFractionDigits: 2 })} M`;
+            if (a >= 1e6) return `Rp ${(rp / 1e6).toLocaleString('id-ID', { maximumFractionDigits: 1 })} Jt`;
+            if (a >= 1e3) return `Rp ${(rp / 1e3).toLocaleString('id-ID', { maximumFractionDigits: 0 })} rb`;
+            return formatIDR(rp);
+        }
+
+        const formatTon = (t) => `${Math.round(t).toLocaleString('id-ID')} ton`;
+
+        // ──────────────────────────────────────────────
+        // CHART INIT
+        // ──────────────────────────────────────────────
+        const ctx = document.getElementById('simChart').getContext('2d');
+        const simChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array.from({ length: maxTicks + 1 }, (_, i) => i),
+                datasets: [
+                    {
+                        label: 'Populasi Ikan (Ton)',
+                        data: [], borderColor: '#2563eb', fill: true,
+                        backgroundColor: 'rgba(37,99,235,0.1)', tension: 0.3, yAxisID: 'y'
+                    },
+                    {
+                        label: 'Upah Nelayan / Bulan (Rp)',
+                        data: [], borderColor: '#f97316', borderDash: [4, 2],
+                        fill: false, tension: 0.3, yAxisID: 'y2', pointRadius: 0
+                    },
+                    {
+                        label: 'Upah Admin / Bulan (Rp)',
+                        data: [], borderColor: '#8b5cf6', borderDash: [2, 4],
+                        fill: false, tension: 0.3, yAxisID: 'y2', pointRadius: 0
+                    },
+
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true, max: 500000, position: 'left',
+                        title: { display: true, text: 'Populasi (Ton)', color: '#2563eb', font: { size: 10 } }
+                    },
+                    y2: {
+                        beginAtZero: true, position: 'right',
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: 'Upah (Rp)', color: '#f97316', font: { size: 10 } },
+                        ticks: {
+                            callback: (v) => v >= 1e6 ? (v / 1e6).toFixed(1) + 'Jt' : v >= 1e3 ? (v / 1e3).toFixed(0) + 'rb' : v
+                        }
+                    },
+                    x: { title: { display: true, text: 'Tick (Bulan)' } }
+                }
+            }
+        });
+
+        // ──────────────────────────────────────────────
+        // STEP MONTH  
+        // ──────────────────────────────────────────────
+        function stepMonth() {
+            if (!isRunning) return;
+
+            currentTick++;
+            const currentYear = currentTick / 12;
+
+            const r_monthly = params.r / 12;
+            const q_monthly = q / 12;
+            const SHIP_MAINT_monthly = SHIP_MAINT / 12;
+
+            const E = fleet * (EFFORT_PER_SHIP / 12);
+            const growth_t = r_monthly * currentN * (1 - currentN / params.K);
+            const yield_t = q_monthly * E * currentN;
+
+            currentN = Math.max(0, currentN + growth_t - yield_t);
+
+            // ── Pemecahan biaya operasional (total tetap = c × E + perawatan) ──
+            const revenue_t = params.P * yield_t;                       // Pendapatan
+            const supRate = Math.min(SUPPLIES_RATE, params.c);        // jaga non-negatif
+            const fuelRate = params.c - supRate;                       // sisa c → BBM
+            const fuelCost_t = fuelRate * E;                             // ⛽ Bahan bakar
+            const supCost_t = supRate * E;                             // 🎣 Perbekalan & awak
+            const maintCost_t = fleet * SHIP_MAINT_monthly;               // 🔧 Perawatan kapal
+            const opex_t = fuelCost_t + supCost_t + maintCost_t;     // Total biaya operasional
+            const profit_t = revenue_t - opex_t;                       // Profit bersih (≡ model lama)
+            const discounted_t = profit_t / Math.pow(1 + delta, currentYear);
+
+            cumulativeProfit += profit_t;
+            npv += discounted_t;
+
+            // Simpan untuk panel laba-rugi
+            lastRevenue = revenue_t;
+            lastFuel = fuelCost_t;
+            lastSupplies = supCost_t;
+            lastMaint = maintCost_t;
+            lastOpex = opex_t;
+            lastNetProfit = profit_t;
+            lastDeltaN = growth_t - yield_t;   // perubahan bersih stok bulan ini (ton)
+
+            const tax_t = profit_t > 0 ? profit_t * MGMT_CUT : 0;
+            const admin_cost_t = J_ADMIN * ADMIN_SALARY * adminSalaryRatio;
+            const harbor_cost_t = fleet * HARBOR_FEE_PER_SHIP;
+            const fleet_fund_t = Math.max(0, tax_t - admin_cost_t - harbor_cost_t);
+
+            portBudget += fleet_fund_t;
+
+            let perFisherMonthly = 0;
+            if (profit_t > 0) {
+                perFisherMonthly = (profit_t * (1 - MGMT_CUT)) / J_FISHERMEN;
+            }
+
+            let perAdminMonthly = 0;
+            if (tax_t > harbor_cost_t && J_ADMIN > 0) {
+                perAdminMonthly = Math.min(ADMIN_SALARY * adminSalaryRatio, (tax_t - harbor_cost_t) / J_ADMIN);
+            }
+
+            lastMonthlyWage = perFisherMonthly;
+            lastAdminWage = perAdminMonthly;
+
+            popData.push(currentN);
+            wageData.push(perFisherMonthly);
+            simChart.data.datasets[2].data.push(perAdminMonthly);
+
+            updateUI(perFisherMonthly, perAdminMonthly);
+
+            if (currentTick >= maxTicks || currentN <= 0) {
+                endRun();
+            } else if (currentTick % 12 === 0 && document.getElementById('chkYearPause').checked) {
+                pauseForYearEnd(perFisherMonthly, perAdminMonthly);
+            }
+        }
+
+        // ──────────────────────────────────────────────
+        // UPDATE UI
+        // ──────────────────────────────────────────────
+        function getWelfareColorClass(wage, umr, isDarkBg = false) {
+            const pct = wage / umr;
+
+            // >= 95% is Green
+            if (pct >= 0.95) return isDarkBg ? 'text-green-400' : 'text-green-600';
+
+            // 90% - 94% is Yellow
+            if (pct >= 0.90) return isDarkBg ? 'text-yellow-300' : 'text-yellow-500';
+
+            // 80% - 89% is Orange
+            if (pct >= 0.80) return isDarkBg ? 'text-orange-400' : 'text-orange-500';
+
+            // < 80% is Red
+            return isDarkBg ? 'text-red-400' : 'text-red-600';
+        }
+
+        function updateUI(monthlyFisher, monthlyAdmin) {
+            const displayYear = Math.floor((currentTick === 0 ? 0 : currentTick - 1) / 12);
+            const displayMonth = currentTick === 0 ? 1 : ((currentTick - 1) % 12) + 1;
+
+            document.getElementById('timeBadge').textContent = `Tahun ${displayYear} Bulan ${displayMonth}`;
+            // ── Populasi ikan: tonase + bar + delta bulan ini ──
+            const ratio = params.K > 0 ? currentN / params.K : 0;
+            document.getElementById('valPopTon').textContent = formatTon(currentN);
+            const popBar = document.getElementById('popBar');
+            popBar.style.width = Math.max(0, Math.min(100, ratio * 100)) + '%';
+            popBar.className = 'h-full rounded-full transition-all duration-300 ' +
+                (ratio >= 0.5 ? 'bg-emerald-500' : ratio >= 0.25 ? 'bg-amber-400' : 'bg-red-500');
+            document.getElementById('popRef').textContent = 'dari kapasitas sehat ' + formatTon(params.K);
+
+            const dEl = document.getElementById('popDelta');
+            if (currentTick > 0) {
+                if (lastDeltaN < -0.5) {
+                    dEl.textContent = '▼ ' + formatTon(Math.abs(lastDeltaN)) + ' /bln';
+                    dEl.className = 'text-[11px] font-bold tabular-nums text-red-500';
+                } else if (lastDeltaN > 0.5) {
+                    dEl.textContent = '▲ ' + formatTon(lastDeltaN) + ' /bln';
+                    dEl.className = 'text-[11px] font-bold tabular-nums text-emerald-600';
+                } else {
+                    dEl.textContent = '≈ stabil';
+                    dEl.className = 'text-[11px] font-bold tabular-nums text-slate-400';
+                }
+            } else {
+                dEl.textContent = '—';
+                dEl.className = 'text-[11px] font-bold tabular-nums text-slate-300';
+            }
+
+            // ── Konteks ──
+            document.getElementById('valCrew').textContent = (J_FISHERMEN + J_ADMIN).toLocaleString('id-ID') + ' Orang';
+            document.getElementById('fleetCountBadge').textContent = `${fleet} / ${MAX_FLEET} Kapal`;
+            document.getElementById('valFleetMetric').textContent = `${fleet} Kapal`;
+            document.getElementById('valBudget').textContent = formatIDR(portBudget);
+
+            // ── Panel laba-rugi ──
+            document.getElementById('valRevenue').textContent = formatShortIDR(lastRevenue);
+            document.getElementById('valOpex').textContent = formatShortIDR(lastOpex);
+            document.getElementById('valFuel').textContent = formatShortIDR(lastFuel);
+            document.getElementById('valSupplies').textContent = formatShortIDR(lastSupplies);
+            document.getElementById('valMaint').textContent = formatShortIDR(lastMaint);
+            const netEl = document.getElementById('valNetProfit');
+            netEl.textContent = formatShortIDR(lastNetProfit);
+            netEl.className = 'text-xl font-extrabold tabular-nums ' + (lastNetProfit >= 0 ? 'text-blue-700' : 'text-red-600');
+            document.getElementById('valCumProfit').textContent = formatShortIDR(cumulativeProfit);
+
+            const welfareEl = document.getElementById('valWelfare');
+            const welfareSub = document.getElementById('welfareSubtitle');
+            if (currentTick > 0) {
+                welfareEl.textContent = formatIDR(monthlyFisher);
+                if (monthlyFisher >= UMR_MONTHLY) {
+                    welfareEl.className = 'text-xl font-bold mt-1 tabular-nums text-green-600';
+                    welfareSub.textContent = `≥ UMR ${formatIDR(UMR_MONTHLY)} ✓`;
+                    welfareSub.className = 'text-[10px] mt-0.5 font-semibold text-green-600';
+                } else {
+                    welfareEl.className = 'text-xl font-bold mt-1 tabular-nums text-red-600';
+                    welfareSub.textContent = '< UMR — kesejahteraan terancam ✗';
+                    welfareSub.className = 'text-[10px] mt-0.5 font-semibold text-red-500';
+                }
+            }
+
+            const adminEl = document.getElementById('valAdminWage');
+            const adminSub = document.getElementById('adminWageSubtitle');
+            if (currentTick > 0) {
+                adminEl.textContent = formatIDR(monthlyAdmin);
+                const targetSalary = ADMIN_SALARY * adminSalaryRatio;
+
+                if (adminSalaryRatio === 1.0 && monthlyAdmin >= ADMIN_SALARY) {
+                    adminEl.className = 'text-xl font-bold mt-1 tabular-nums text-green-600';
+                    adminSub.textContent = `Terbayar penuh ✓`;
+                    adminSub.className = 'text-[10px] mt-0.5 font-semibold text-green-600';
+                } else if (adminSalaryRatio < 1.0 && monthlyAdmin >= targetSalary) {
+                    adminEl.className = 'text-xl font-bold mt-1 tabular-nums text-amber-500';
+                    adminSub.textContent = `Sesuai janji (${Math.round(adminSalaryRatio * 100)}%) ⚠`;
+                    adminSub.className = 'text-[10px] mt-0.5 font-semibold text-amber-600';
+                } else if (monthlyAdmin > 0) {
+                    adminEl.className = 'text-xl font-bold mt-1 tabular-nums text-orange-500';
+                    adminSub.textContent = `Sebagian — pajak tipis ⚠`;
+                    adminSub.className = 'text-[10px] mt-0.5 font-semibold text-orange-600';
+                } else {
+                    adminEl.className = 'text-xl font-bold mt-1 tabular-nums text-red-600';
+                    adminSub.textContent = `Tidak terbayar ✗`;
+                    adminSub.className = 'text-[10px] mt-0.5 font-semibold text-red-500';
+                }
+            }
+
+            const canBuy = portBudget >= SHIP_COST && fleet < MAX_FLEET;
+            const canSell = fleet > 0;
+            document.querySelectorAll('.btnBuy').forEach(b => b.disabled = !canBuy);
+            document.querySelectorAll('.btnSell').forEach(b => b.disabled = !canSell);
+
+            simChart.data.datasets[0].data = popData;
+            simChart.data.datasets[1].data = wageData;
+            simChart.update('none');
+            updateScene(monthlyFisher);
+        }
+
+        // ──────────────────────────────────────────────
+        // OCEAN SCENE
+        // ──────────────────────────────────────────────
+        function updateScene(income) {
+            const village = document.getElementById('villageGroup');
+            const isProsperous = income >= UMR_MONTHLY;
+            const isDeficit = cumulativeProfit <= 0 && currentTick > 0;
+
+            const housePos = [
+                { x: 20, y: 100 }, { x: 50, y: 110 }, { x: 30, y: 140 }, { x: 70, y: 120 }, { x: 100, y: 130 },
+                { x: 40, y: 170 }, { x: 80, y: 160 }, { x: 120, y: 150 }, { x: 60, y: 200 }, { x: 100, y: 190 },
+                { x: 20, y: 220 }, { x: 140, y: 180 }, { x: 160, y: 140 }, { x: 180, y: 170 }, { x: 150, y: 210 }
+            ];
+
+            village.innerHTML = housePos.map(p => {
+                let color = '#cbd5e1', glow = '';
+                if (isProsperous) { color = '#facc15'; glow = 'house-glow'; }
+                else if (isDeficit) { color = '#475569'; }
+                return `<use href="#house" x="${p.x}" y="${p.y}" width="25" height="25" style="color:${color}" class="${glow} transition-all duration-500"/>`;
+            }).join('');
+
+            const COLS = 25;
+            document.getElementById('boatLayer').innerHTML = Array.from({ length: fleet }, (_, i) => {
+                const row = Math.floor(i / COLS), col = i % COLS;
+                const x = 270 + (col * 20) + (row % 2 * 10), y = 115 + (row * 15);
+                return `<use href="#smallBoat" x="${x}" y="${y}" width="14" height="9" style="animation:wave ${4 + Math.random() * 2}s infinite ease-in-out"/>`;
+            }).join('');
+
+            const fishCount = Math.floor((currentN / params.K) * 15);
+            document.getElementById('fishLayer').innerHTML = Array.from({ length: fishCount }, () => {
+                const x = 350 + Math.random() * 400, y = 160 + Math.random() * 70;
+                return `<ellipse cx="${x}" cy="${y}" rx="4" ry="2" fill="#1e40af" opacity="0.5"/>`;
+            }).join('');
+        }
+
+        // ──────────────────────────────────────────────
+        // YEAR END
+        // ──────────────────────────────────────────────
+        function pauseForYearEnd(monthlyFisher, monthlyAdmin) {
+            isRunning = false;
+            clearInterval(timer);
+            document.getElementById('btnPause').classList.add('hidden');
+            document.getElementById('btnPlay').classList.remove('hidden');
+
+            const year = currentTick / 12;
+            const profitThisYear = cumulativeProfit - profitAtYearStart;
+            profitAtYearStart = cumulativeProfit;
+
+            document.getElementById('yeYear').textContent = year;
+            document.getElementById('yePop').textContent = formatTon(currentN);
+            document.getElementById('yeProfit').textContent = formatIDR(profitThisYear);
+            document.getElementById('yeFleet').textContent = `${fleet} kapal`;
+            document.getElementById('yeBudget').textContent = formatIDR(portBudget);
+
+            const yeWelfareColor = getWelfareColorClass(monthlyFisher, UMR_MONTHLY, true);
+            const yeWelfareEl = document.getElementById('yeWelfare');
+            yeWelfareEl.textContent = formatIDR(monthlyFisher);
+            yeWelfareEl.className = `font-bold ${yeWelfareColor}`;
+
+            document.getElementById('yeAdmin').textContent = formatIDR(monthlyAdmin);
+            document.getElementById('yearEndCard').classList.remove('hidden');
+        }
+
+        // ──────────────────────────────────────────────
+        // RESET SIMULATION
+        // ──────────────────────────────────────────────
+        function resetSimulation() {
+            clearInterval(timer);
+            isRunning = false;
+
+            tickSpeedMs = 300; // Restore normal speed on reset
+
+            renderScenarioSelector();
+
+            const sc = SCENARIOS[activeScenario];
+            params = { ...sc.params };
+            currentN = params.K * sc.startN_ratio;
+            currentTick = 0;
+            fleet = sc.initFleet;
+            runEvents = [];
+            peakFleet = sc.initFleet;
+            portBudget = sc.initBudget;
+            cumulativeProfit = 0;
+            npv = 0;
+            profitAtYearStart = 0;
+            popData = [currentN];
+            wageData = [0];
+            simChart.data.datasets[2].data = [0];
+            lastMonthlyWage = 0;
+            lastAdminWage = 0;
+            lastRevenue = lastFuel = lastSupplies = lastMaint = lastOpex = lastNetProfit = 0;
+            lastDeltaN = 0;
+
+            adminSalaryRatio = 1.0;
+            const adminSalaryRadio = document.querySelector('input[name="adminSalary"][value="1.0"]');
+            if (adminSalaryRadio) adminSalaryRadio.checked = true;
+
+            document.getElementById('yearEndCard').classList.add('hidden');
+            document.getElementById('btnPause').classList.add('hidden');
+            document.getElementById('btnPlay').classList.remove('hidden');
+            document.getElementById('reflectionModal').classList.add('hidden');
+            document.getElementById('stageIntroModal').classList.add('hidden');
+
+            simChart.options.scales.y.max = 500000;
+
+            ['valWelfare', 'valAdminWage'].forEach(id => {
+                document.getElementById(id).textContent = 'Rp 0';
+                document.getElementById(id).className = 'text-xl font-bold mt-1 tabular-nums text-slate-800';
+            });
+            document.getElementById('welfareSubtitle').textContent = 'Menunggu simulasi...';
+            document.getElementById('welfareSubtitle').className = 'text-[10px] mt-0.5 font-semibold text-slate-500';
+            document.getElementById('adminWageSubtitle').textContent = 'Menunggu simulasi...';
+            document.getElementById('adminWageSubtitle').className = 'text-[10px] mt-0.5 font-semibold text-slate-500';
+
+            refreshShipButtonLabels();
+            updateUI(0, 0);
+        }
+
+        // ──────────────────────────────────────────────
+        // SHIP BUY / SELL
+        // ──────────────────────────────────────────────
+        function buyShips(n) {
+            const maxByBudget = Math.floor(portBudget / SHIP_COST);
+            const maxByCap = MAX_FLEET - fleet;
+            const qty = Math.min(n, maxByBudget, maxByCap);
+            if (qty <= 0) return;
+            portBudget -= qty * SHIP_COST;
+            fleet += qty;
+            if (fleet > peakFleet) peakFleet = fleet;
+            runEvents.push({ tick: currentTick, year: +(currentTick / 12).toFixed(2), action: 'buy', qty, fleetAfter: fleet, popTon: Math.round(currentN), popPct: params.K > 0 ? Math.round(currentN / params.K * 100) : 0, cumProfit: Math.round(cumulativeProfit) });
+            updateUI(lastMonthlyWage, lastAdminWage);
+        }
+
+        function sellShips(n) {
+            const qty = Math.min(n, fleet);
+            if (qty <= 0) return;
+            portBudget += qty * SHIP_SELL;
+            fleet -= qty;
+            runEvents.push({ tick: currentTick, year: +(currentTick / 12).toFixed(2), action: 'sell', qty, fleetAfter: fleet, popTon: Math.round(currentN), popPct: params.K > 0 ? Math.round(currentN / params.K * 100) : 0, cumProfit: Math.round(cumulativeProfit) });
+            updateUI(lastMonthlyWage, lastAdminWage);
+        }
+
+        function refreshShipButtonLabels() {
+            document.getElementById('lblBuyPrice').textContent = `${formatJuta(SHIP_COST)}/unit`;
+            document.getElementById('lblSellPrice').textContent = `${formatJuta(SHIP_SELL)}/unit`;
+            document.getElementById('lblFishCount').textContent = `(${J_FISHERMEN.toLocaleString('id-ID')} org)`;
+            document.getElementById('lblAdminCount').textContent = `(${J_ADMIN} staf)`;
+        }
+
+        // ──────────────────────────────────────────────
+        // END RUN & REFLECTION
+        // ──────────────────────────────────────────────
+        const REFLECTION_PROMPTS = {
+            normal: 'Apa yang terjadi ketika kamu menambah terlalu banyak kapal? Berapa kisaran jumlah kapal yang paling berhasil menjaga keseimbangan antara keuntungan dan kelestarian?',
+            bbm: 'Bandingkan kondisi ini dengan tahap sebelumnya (Normal). Apa yang berubah? Bagaimana kenaikan biaya BBM memengaruhi strategi armadamu dan kesejahteraan nelayan?',
+            elnino_bbm: 'Kamu menghadapi dua tekanan sekaligus. Mana yang lebih sulit diatasi — biaya BBM atau pertumbuhan ikan yang lambat? Mengapa?',
+            overfished: 'Apakah kamu berhasil memulihkan kondisi laut dan kesejahteraan komunitas? Apa yang bisa dan tidak bisa dilakukan seorang manajer sendirian dalam situasi ini?'
+        };
+
+        function showReflectionModal() {
+            document.getElementById('reflSummary').textContent = `Skenario: ${SCENARIOS[activeScenario].label} · ${currentTick} bulan`;
+
+            const popPct = params.K > 0 ? Math.round(currentN / params.K * 100) : 0;
+            const welfareColor = getWelfareColorClass(lastMonthlyWage, UMR_MONTHLY, false);
+            const welfarePct = Math.round((lastMonthlyWage / UMR_MONTHLY) * 100);
+
+            document.getElementById('reflStats').innerHTML = `
+                <div class="bg-slate-50 p-2 rounded border border-slate-100">
+                    <span class="block text-[10px] text-slate-400 uppercase">Skenario</span>
+                    <span class="font-bold text-slate-700">${SCENARIOS[activeScenario].label}</span>
+                </div>
+                <div class="bg-slate-50 p-2 rounded border border-slate-100">
+                    <span class="block text-[10px] text-slate-400 uppercase">Durasi</span>
+                    <span class="font-bold text-slate-700">${currentTick} bulan</span>
+                </div>
+                <div class="bg-slate-50 p-2 rounded border border-slate-100">
+                    <span class="block text-[10px] text-slate-400 uppercase">Populasi Akhir</span>
+                    <span class="font-bold ${popPct < 30 ? 'text-red-600' : 'text-blue-600'}">${formatTon(currentN)}</span>
+                </div>
+                <div class="bg-slate-50 p-2 rounded border border-slate-100">
+                    <span class="block text-[10px] text-slate-400 uppercase">Kesejahteraan Nelayan</span>
+                    <span class="font-bold ${welfareColor}">${formatIDR(lastMonthlyWage)} (${welfarePct}%)</span>
+                </div>
+                <div class="bg-slate-50 p-2 rounded border border-slate-100">
+                    <span class="block text-[10px] text-slate-400 uppercase">Profit Bersih /bln</span>
+                    <span class="font-bold ${lastNetProfit >= 0 ? 'text-blue-600' : 'text-red-600'}">${formatShortIDR(lastNetProfit)}</span>
+                </div>
+                <div class="bg-slate-50 p-2 rounded border border-slate-100">
+                    <span class="block text-[10px] text-slate-400 uppercase">Total Profit</span>
+                    <span class="font-bold text-pink-600">${formatShortIDR(cumulativeProfit)}</span>
+                </div>
+            `;
+            const archetype = classifyRun({
+                finalPopPct: popPct, peakFleet, finalFleet: fleet,
+                events: runEvents, cumProfit: cumulativeProfit, collapsed: currentN <= 0,
+                scenario: activeScenario
+            });
+            // Welfare Evaluation Logic
+            const evalEl = document.getElementById('reflEval');
+            let evalText = '';
+            let evalClass = '';
+
+            if (welfarePct >= 95) {
+                evalText = 'Sejahtera. Upah memadai untuk menutupi seluruh kebutuhan hidup layak, kesehatan, dan pendidikan keluarga nelayan. Kerja bagus dalam mencapai keberlanjutan ekonomi!';
+                evalClass = 'bg-green-50 border-green-200 text-green-800';
+            } else if (welfarePct >= 90) {
+                evalText = 'Cukup. Kebutuhan pokok harian terpenuhi, namun nelayan rentan terhadap pengeluaran mendadak dan sulit menabung. Komunitas bertahan, tapi tanpa jaring pengaman.';
+                evalClass = 'bg-yellow-50 border-yellow-200 text-yellow-800';
+            } else if (welfarePct >= 80) {
+                evalText = 'Rentan. Sulit memenuhi standar hidup layak. Nelayan mulai terpaksa berhutang atau memotong pengeluaran penting seperti gizi dan pendidikan. Strategi ini menyebabkan tekanan finansial yang berat.';
+                evalClass = 'bg-orange-50 border-orange-200 text-orange-800';
+            } else {
+                evalText = 'Krisis. Jauh di bawah standar layak. Keluarga nelayan terancam kemiskinan ekstrem dan mungkin terpaksa meninggalkan profesi ini. Ini adalah kegagalan manajemen yang memicu krisis sosial-ekonomi di pelabuhan.';
+                evalClass = 'bg-red-50 border-red-200 text-red-800';
+            }
+
+            evalEl.className = `mb-5 p-3 rounded-lg text-sm border ${evalClass}`;
+            evalEl.innerHTML = `<strong>Evaluasi Kesejahteraan:</strong> ${evalText}`;
+            evalEl.classList.remove('hidden');
+
+            document.getElementById('reflPrompt').textContent = REFLECTION_PROMPTS[activeScenario] || REFLECTION_PROMPTS['normal'];
+            document.getElementById('reflTextarea').value = '';
+            document.getElementById('reflTextarea').placeholder = 'Tulis jawabanmu di sini...';
+
+            document.getElementById('reflectionModal').classList.remove('hidden');
+        }
+
+        document.getElementById('reflSaveBtn').addEventListener('click', () => {
+            const text = document.getElementById('reflTextarea').value.trim();
+            if (!text) {
+                document.getElementById('reflTextarea').placeholder = 'Harap tulis refleksimu terlebih dahulu.';
+                return;
+            }
+            saveRunHistory(text);
+            unlockNextStage(activeScenario);
+            document.getElementById('reflectionModal').classList.add('hidden');
+        });
+        function endRun() {
+            isRunning = false;
+            clearInterval(timer);
+            document.getElementById('btnPause').classList.add('hidden');
+            document.getElementById('btnPlay').classList.remove('hidden');
+            showReflectionModal();
+        }
+
+        // ──────────────────────────────────────────────
+        // RUN HISTORY
+        // ──────────────────────────────────────────────
+        function saveRunHistory(reflection) {
+            const history = JSON.parse(localStorage.getItem('knoversaRunHistory') || '[]');
+            history.push({
+                date: new Date().toISOString(),
+                scenario: activeScenario,
+                label: SCENARIOS[activeScenario].label,
+                months: currentTick,
+                finalPopPct: params.K > 0 ? Math.round(currentN / params.K * 100) : 0,
+                finalPopTon: Math.round(currentN),
+                cumProfit: Math.round(cumulativeProfit),
+                npv: Math.round(npv),
+                adminRatio: adminSalaryRatio,
+                reflection: reflection,
+                peakFleet: peakFleet,
+                finalFleet: fleet,
+                collapsed: currentN <= 0,
+                events: runEvents.slice(),
+                popSeries: popData.filter((_, i) => i % 12 === 0).map((p, idx) => ({ year: idx, popTon: Math.round(p) }))
+            });
+            localStorage.setItem('knoversaRunHistory', JSON.stringify(history));
+            renderRunHistory();
+        }
+
+        let _histCache = [];
+
+        function _popClass(p) { return p >= 45 ? 'text-teal-600' : p >= 30 ? 'text-amber-600' : 'text-red-500'; }
+
+        function _outcomeTag(h) {
+            const pc = h.finalPopPct;
+            const peak = h.peakFleet != null ? h.peakFleet : null;
+            const init = SCENARIOS[h.scenario] ? SCENARIOS[h.scenario].initFleet : 4;
+            if (h.collapsed && h.months < 120) return ['Kolaps', 'bg-red-100 text-red-700'];
+            if (pc < 30) return ['Kolaps', 'bg-red-100 text-red-700'];
+            if (h.finalFleet === 0 && peak != null && peak > init + 5) return ['Overshoot', 'bg-orange-100 text-orange-700'];
+            if (h.scenario === 'overfished' && pc >= 45) return ['Pemulihan', 'bg-blue-100 text-blue-700'];
+            if (pc > 80 && peak != null && peak <= init + 1) return ['Kurang-panen', 'bg-yellow-100 text-yellow-700'];
+            if (pc >= 45 && pc <= 65) return ['Optimal', 'bg-teal-100 text-teal-700'];
+            if (pc > 65) return ['Kurang-panen', 'bg-yellow-100 text-yellow-700'];
+            return ['Tertekan', 'bg-orange-100 text-orange-700'];
+        }
+
+        function _sparkline(series, K) {
+            if (!series || !series.length) return '<span class="text-slate-300 italic text-[10px]">tidak ada data trajektori</span>';
+            const w = 240, h = 64, pad = 6, maxX = Math.max(...series.map(s => s.year)) || 1;
+            const X = x => pad + (x / maxX) * (w - 2 * pad), Y = p => h - pad - (p / K) * (h - 2 * pad);
+            const pts = series.map(s => `${X(s.year).toFixed(1)},${Y(s.popTon).toFixed(1)}`).join(' ');
+            const ymsy = Y(K / 2).toFixed(1), last = series[series.length - 1];
+            const col = last.popTon / K >= 0.45 ? '#0d9488' : last.popTon / K >= 0.30 ? '#d97706' : '#dc2626';
+            return `<svg viewBox="0 0 ${w} ${h}" class="w-full" style="height:64px">
+                <line x1="${pad}" y1="${ymsy}" x2="${w - pad}" y2="${ymsy}" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 3"/>
+                <text x="${w - pad}" y="${ymsy - 3}" text-anchor="end" font-size="8" fill="#94a3b8">MSY \u00bdK</text>
+                <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/>
+                <circle cx="${X(last.year)}" cy="${Y(last.popTon)}" r="3" fill="${col}"/>
+            </svg>`;
+        }
+
+        function _detailHTML(h) {
+            const K = (SCENARIOS[h.scenario] && SCENARIOS[h.scenario].params.K) || params.K;
+            const evs = (h.events && h.events.length)
+                ? h.events.map(e => `<div class="flex items-center gap-2 text-[11px] font-mono py-1 px-2 rounded bg-white border border-slate-100">
+                        <span class="text-slate-400 w-12">th ${e.year.toFixed(1)}</span>
+                        <span class="font-bold w-20 ${e.action === 'buy' ? 'text-teal-600' : 'text-red-500'}">${e.action === 'buy' ? '+ ' + e.qty + ' kpl' : '\u2013 ' + e.qty + ' kpl'}</span>
+                        <span class="text-slate-500 ml-auto">armada ${e.fleetAfter} \u00b7 pop ${e.popPct}%</span>
+                    </div>`).join('')
+                : '<p class="text-[11px] text-slate-400 italic px-2">Tidak ada keputusan beli/jual sepanjang run ini.</p>';
+            return `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-slate-50 rounded-lg">
+                <div>
+                    <p class="text-[10px] uppercase tracking-wide text-slate-400 font-bold mb-2">Populasi ikan (per tahun)</p>
+                    <div class="bg-white border border-slate-200 rounded p-2">${_sparkline(h.popSeries, K)}</div>
+                    <p class="text-[10px] text-slate-500 mt-2">Puncak armada <b>${h.peakFleet != null ? h.peakFleet : '\u2014'}</b>, akhir <b>${h.finalFleet != null ? h.finalFleet : '\u2014'}</b> \u00b7 ${h.events ? h.events.length : 0} keputusan</p>
+                </div>
+                <div>
+                    <p class="text-[10px] uppercase tracking-wide text-slate-400 font-bold mb-2">Jejak keputusan (events)</p>
+                    <div class="space-y-1 max-h-48 overflow-y-auto">${evs}</div>
+                </div>
+            </div>`;
+        }
+
+        function renderRunHistory() {
+            const history = JSON.parse(localStorage.getItem('knoversaRunHistory') || '[]');
+            history.sort((a, b) => new Date(b.date) - new Date(a.date));
+            _histCache = history;
+            document.getElementById('historyCount').textContent = `${history.length} run`;
+
+            const container = document.getElementById('historyTable');
+            if (history.length === 0) {
+                container.innerHTML = `<p class="text-center text-slate-400 italic text-xs py-4">Belum ada riwayat simulasi.</p>`;
+                return;
+            }
+
+            let html = `<table class="w-full text-left text-xs text-slate-600">
+                <thead class="text-[10px] uppercase bg-slate-50 text-slate-400">
+                    <tr>
+                        <th class="p-2 w-4"></th>
+                        <th class="p-2 rounded-tl-lg">Skenario / Gaya</th>
+                        <th class="p-2">Durasi</th>
+                        <th class="p-2">Pop Akhir</th>
+                        <th class="p-2">Cum. Profit</th>
+                        <th class="p-2">Armada</th>
+                        <th class="p-2">Keput.</th>
+                        <th class="p-2 rounded-tr-lg">Hasil</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">`;
+            html += history.map((h, idx) => {
+                const tagPair = _outcomeTag(h);
+                return `<tr class="histRow hover:bg-blue-50 cursor-pointer" data-idx="${idx}">
+                        <td class="p-2 text-blue-500 font-bold caret">\u25b6</td>
+                        <td class="p-2 font-semibold text-slate-700">${h.label}${h.synthetic ? ' <span class="text-[9px] text-teal-600">contoh</span>' : ''}</td>
+                        <td class="p-2">${h.months} bln</td>
+                        <td class="p-2 font-bold ${_popClass(h.finalPopPct)}">${h.finalPopPct}%<span class="text-slate-400 font-normal"> \u00b7 ${h.finalPopTon != null ? h.finalPopTon.toLocaleString('id-ID') : '\u2014'} t</span></td>
+                        <td class="p-2 text-pink-600">${formatShortIDR(h.cumProfit)}</td>
+                        <td class="p-2 tabular-nums">${h.peakFleet != null ? h.peakFleet : '\u2014'}</td>
+                        <td class="p-2 tabular-nums">${h.events ? h.events.length : '\u2014'}</td>
+                        <td class="p-2"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${tagPair[1]}">${tagPair[0]}</span></td>
+                    </tr>`;
+            }).join('');
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+
+            container.querySelectorAll('.histRow').forEach(row => {
+                row.addEventListener('click', () => {
+                    const idx = +row.dataset.idx;
+                    const next = row.nextElementSibling;
+                    if (next && next.classList.contains('detailRow')) { next.remove(); row.querySelector('.caret').textContent = '\u25b6'; return; }
+                    container.querySelectorAll('.detailRow').forEach(d => d.remove());
+                    container.querySelectorAll('.caret').forEach(c => c.textContent = '\u25b6');
+                    row.querySelector('.caret').textContent = '\u25bc';
+                    const tr = document.createElement('tr');
+                    tr.className = 'detailRow';
+                    tr.innerHTML = `<td colspan="8" class="p-2">${_detailHTML(_histCache[idx])}</td>`;
+                    row.after(tr);
+                });
+            });
+        }
+
+        function downloadRunData() {
+            const data = localStorage.getItem('knoversaRunHistory') || '[]';
+            const blob = new Blob([data], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'knovera_runs_' + new Date().toISOString().slice(0, 10) + '.json';
+            a.click(); URL.revokeObjectURL(a.href);
+        }
+
+        function clearRunData() {
+            if (!confirm('Hapus SEMUA riwayat run (termasuk data asli murid)?')) return;
+            localStorage.removeItem('knoversaRunHistory');
+            renderRunHistory();
+        }
+
+        // ───── DEV: headless synthetic playthroughs across play styles (uji agent) ─────
+        function _mkPolicies(j) {
+            return {
+                cautious: () => null,
+                msy: s => { const pc = s.N / s.K; if (pc > j.hi && s.fleet < j.tgt) return { buy: 1 }; if (pc < j.lo && s.fleet > 5) return { sell: 1 }; return null; },
+                greedy: () => ({ buy: 99 }),
+                panic: s => { const pc = s.N / s.K; if (s.tick < j.ramp) return { buy: 99 }; if (pc < 0.25 && s.fleet > 5) return { sell: 99 }; return null; },
+                restore: s => { const pc = s.N / s.K; if (s.fleet > 20 && pc < 0.45) return { sell: 2 }; if (pc > 0.5 && s.fleet < j.tgt) return { buy: 1 }; return null; }
+            };
+        }
+        const _LINEUP = [['normal', 'cautious', 'Pemain Hati-hati'], ['normal', 'msy', 'Manajer Seimbang'], ['normal', 'greedy', 'Ekspansionis'], ['normal', 'panic', 'Panik Jual'], ['bbm', 'msy', 'Seimbang (Krisis BBM)'], ['overfished', 'restore', 'Pemulih'], ['overfished', 'greedy', 'Habiskan Saja']];
+        function _jit(i) { if (i === 0) return { tgt: 30, hi: 0.55, lo: 0.35, ramp: 48 }; const r = (n, a, b) => a + ((((Math.sin((i + 1) * n * 12.9898) * 43758.5453) % 1) + 1) % 1) * (b - a); return { tgt: Math.round(r(1, 24, 34)), hi: r(2, 0.50, 0.62), lo: r(3, 0.30, 0.40), ramp: Math.round(r(4, 40, 56)) }; }
+        function _simulate(scenKey, policy) {
+            const sc = SCENARIOS[scenKey], PP = { ...sc.params }, CATCH = q;
+            let N = PP.K * sc.startN_ratio, tick = 0, flt = sc.initFleet, budget = sc.initBudget, cum = 0, npvAcc = 0, peak = flt;
+            const events = [], series = [{ year: 0, popTon: Math.round(N), fleet: flt }];
+            const doBuy = n => { const qy = Math.min(n, Math.floor(budget / SHIP_COST), MAX_FLEET - flt); if (qy <= 0) return; budget -= qy * SHIP_COST; flt += qy; if (flt > peak) peak = flt; events.push({ tick, year: +(tick / 12).toFixed(2), action: 'buy', qty: qy, fleetAfter: flt, popTon: Math.round(N), popPct: Math.round(N / PP.K * 100), cumProfit: Math.round(cum) }); };
+            const doSell = n => { const qy = Math.min(n, flt); if (qy <= 0) return; budget += qy * SHIP_SELL; flt -= qy; events.push({ tick, year: +(tick / 12).toFixed(2), action: 'sell', qty: qy, fleetAfter: flt, popTon: Math.round(N), popPct: Math.round(N / PP.K * 100), cumProfit: Math.round(cum) }); };
+            for (let m = 0; m < maxTicks; m++) {
+                const act = policy({ N, K: PP.K, fleet: flt, tick });
+                if (act && act.buy) doBuy(act.buy);
+                if (act && act.sell) doSell(act.sell);
+                tick++; const yr = tick / 12, E = flt * (EFFORT_PER_SHIP / 12);
+                const g = (PP.r / 12) * N * (1 - N / PP.K), y = (CATCH / 12) * E * N;
+                N = Math.max(0, N + g - y);
+                const sr = Math.min(SUPPLIES_RATE, PP.c), fr = PP.c - sr;
+                const profit = PP.P * y - (fr * E + sr * E + flt * (SHIP_MAINT / 12));
+                cum += profit; npvAcc += profit / Math.pow(1 + delta, yr);
+                const tax = profit > 0 ? profit * MGMT_CUT : 0;
+                budget += Math.max(0, tax - J_ADMIN * ADMIN_SALARY - flt * HARBOR_FEE_PER_SHIP);
+                if (tick % 12 === 0) series.push({ year: tick / 12, popTon: Math.round(N), fleet: flt });
+                if (N <= 0) { series.push({ year: +(tick / 12).toFixed(2), popTon: 0, fleet: flt }); break; }
+            }
+            return { N, tick, flt, cum, npvAcc, peak, events, series, K: PP.K };
+        }
+        function generateSampleRuns(cohort) {
+            const history = JSON.parse(localStorage.getItem('knoversaRunHistory') || '[]');
+            for (let i = 0; i < cohort; i++) {
+                const P = _mkPolicies(_jit(i));
+                _LINEUP.forEach(([scen, pkey, name], k) => {
+                    const r = _simulate(scen, P[pkey]);
+                    history.push({
+                        date: new Date(Date.now() - (i * 7 + k) * 1000).toISOString(),
+                        scenario: scen, label: SCENARIOS[scen].label + ' \u00b7 ' + name,
+                        months: r.tick, finalPopPct: r.K > 0 ? Math.round(r.N / r.K * 100) : 0, finalPopTon: Math.round(r.N),
+                        cumProfit: Math.round(r.cum), npv: Math.round(r.npvAcc), adminRatio: 1.0,
+                        reflection: '[contoh sintetis \u2014 ' + name + ']',
+                        peakFleet: r.peak, finalFleet: r.flt, collapsed: r.N <= 0 || r.tick < maxTicks,
+                        events: r.events, popSeries: r.series, synthetic: true, style: name
+                    });
+                });
+            }
+            localStorage.setItem('knoversaRunHistory', JSON.stringify(history));
+            renderRunHistory();
+        }
+
+        document.getElementById('historyToggle').addEventListener('click', () => {
+            document.getElementById('historyTable').classList.toggle('hidden');
+        });
+        document.getElementById('btnDownloadRuns').addEventListener('click', (e) => { e.stopPropagation(); downloadRunData(); });
+        document.getElementById('btnClearRuns').addEventListener('click', (e) => { e.stopPropagation(); clearRunData(); });
+        document.getElementById('btnGenSamples').addEventListener('click', () => {
+            const n = Math.max(1, Math.min(6, parseInt(document.getElementById('genCohort').value) || 1));
+            generateSampleRuns(n);
+            document.getElementById('genStatus').textContent = `\u2713 ${n * 7} run contoh ditambahkan.`;
+        });
+        function classifyRun(run) {
+            const ARCH_META = {
+                greedy: { label: '🔴 Greedy — Terlalu Agresif', cls: 'bg-red-50 text-red-800 border border-red-200' },
+                overconserving: { label: '🟡 Over-Conserving — Terlalu Hati-hati', cls: 'bg-amber-50 text-amber-800 border border-amber-200' },
+                chaotic: { label: '🟣 Chaotic — Tanpa Strategi', cls: 'bg-purple-50 text-purple-800 border border-purple-200' },
+                balanced: { label: '🟢 Balanced — Berkelanjutan', cls: 'bg-teal-50 text-teal-800 border border-teal-200' }
+            };
+            const meta = ARCH_META[archetype];
+            document.getElementById('reflArchetype').className = `mb-4 p-3 rounded-lg text-sm font-semibold ${meta.cls}`;
+            document.getElementById('reflArchetype').textContent = `Gaya bermain: ${meta.label}`;
+            document.getElementById('reflArchetype').classList.remove('hidden');
+            const { finalPopPct, peakFleet, finalFleet, events, cumProfit, collapsed } = run;
+            const initFleet = SCENARIOS[run.scenario]?.initFleet ?? 4;
+
+            let alternations = 0;
+            for (let i = 1; i < events.length; i++) {
+                if (events[i].action !== events[i - 1].action) alternations++;
+            }
+            const altRatio = events.length > 1 ? alternations / (events.length - 1) : 0;
+
+            if (collapsed || finalPopPct < 25) return 'greedy';
+            if (events.length >= 8 && altRatio >= 0.5) return 'chaotic';
+            if (finalPopPct > 70 && peakFleet <= initFleet + 3) return 'overconserving';
+            if (finalPopPct >= 40 && finalPopPct <= 65 && cumProfit > 0) return 'balanced';
+            if (finalPopPct < 40) return 'greedy';
+            return 'overconserving';
+        }
+
+        // ──────────────────────────────────────────────
+        // STAGE GATE LOGIC
+        // ──────────────────────────────────────────────
+        function saveStageProgress() {
+            localStorage.setItem('knoversaStageProgress', JSON.stringify({ unlockedStages, completedStages }));
+        }
+
+        function unlockNextStage(completedKey) {
+            if (!completedStages.includes(completedKey)) {
+                completedStages.push(completedKey);
+            }
+            const idx = STAGE_ORDER.indexOf(completedKey);
+            if (idx !== -1 && idx < STAGE_ORDER.length - 1) {
+                const next = STAGE_ORDER[idx + 1];
+                if (!unlockedStages.includes(next)) {
+                    unlockedStages.push(next);
+                    showStageUnlockToast(SCENARIOS[next].label);
+                }
+            }
+            saveStageProgress();
+            renderScenarioSelector();
+        }
+
+        function showStageUnlockToast(label) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-4 right-4 bg-green-600 text-white rounded-xl p-4 z-50 shadow-lg font-bold text-sm transition-opacity duration-500';
+            toast.innerHTML = `🔓 Tahap baru terbuka: ${label}`;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
+
+        function renderScenarioSelector() {
+            const sel = document.getElementById('scenarioSelect');
+            sel.innerHTML = STAGE_ORDER.map(id => {
+                const sc = SCENARIOS[id];
+                const locked = !unlockedStages.includes(id);
+                return `<option value="${id}" ${locked ? 'disabled' : ''}>
+                            ${locked ? '🔒 ' : ''}${sc.label}
+                        </option>`;
+            }).join('');
+
+            if (!unlockedStages.includes(activeScenario)) activeScenario = 'normal';
+            sel.value = activeScenario;
+        }
+
+        // ──────────────────────────────────────────────
+        // STAGE INTRO CARDS
+        // ──────────────────────────────────────────────
+        const STAGE_INTROS = {
+            normal: null,
+            bbm: {
+                emoji: '⛽',
+                title: 'Krisis BBM',
+                body: 'Ketidakstabilan politik nasional menyebabkan harga solar naik drastis. Biaya operasional setiap kapal hampir dua kali lipat dari kondisi normal. Nelayan mulai gelisah — apakah melaut masih menguntungkan?\n\nSituasi seperti ini sering diabaikan dalam buku teks, tapi dampaknya nyata dirasakan oleh komunitas pesisir.',
+                challenge: 'Jaga agar nelayan dan staf admin tetap hidup layak hingga akhir simulasi. Bandingkan hasilmu dengan tahap Normal sebelumnya.'
+            },
+            elnino_bbm: {
+                emoji: '🌡️',
+                title: 'Krisis Berganda',
+                body: 'Krisis BBM belum selesai. Kini anomali iklim El Niño melanda — suhu laut naik, ikan stres, dan laju reproduksi turun drastis. Dua tekanan menyerang sekaligus: ekonomi dan ekologi.\n\nIni bukan skenario fiksi. El Niño terjadi setiap 3–7 tahun dan selalu memukul keras komunitas nelayan.',
+                challenge: 'Temukan strategi yang masih bisa menjaga kesejahteraan komunitas meski dua variabel kritis berubah bersamaan.'
+            },
+            overfished: {
+                emoji: '⚠️',
+                title: 'Warisan Penangkapan Berlebih',
+                body: 'Kamu mewarisi pelabuhan dari pengelola sebelumnya — yang meninggalkan 50 kapal aktif di laut yang populasi ikannya tinggal 20% dari kapasitas normal. Kas hampir habis.\n\nIni bukan kesalahanmu. Tapi ini adalah tanggung jawabmu.',
+                challenge: 'Ini bukan simulasi biasa. Eksplorasi apa yang bisa dan tidak bisa dilakukan seorang manajer sendirian. Catat temuanmu.'
+            }
+        };
+
+        function showStageIntro(scenarioKey) {
+            const intro = STAGE_INTROS[scenarioKey];
+            if (!intro) return;
+
+            const seen = JSON.parse(localStorage.getItem('knoversaIntrosSeen') || '[]');
+            if (seen.includes(scenarioKey)) return;
+
+            document.getElementById('stageIntroEmoji').textContent = intro.emoji;
+            document.getElementById('stageIntroTitle').textContent = intro.title;
+            document.getElementById('stageIntroBody').textContent = intro.body;
+            document.getElementById('stageIntroChallenge').textContent = intro.challenge;
+
+            document.getElementById('stageIntroModal').classList.remove('hidden');
+
+            document.getElementById('stageIntroBtn').onclick = () => {
+                document.getElementById('stageIntroModal').classList.add('hidden');
+                seen.push(scenarioKey);
+                localStorage.setItem('knoversaIntrosSeen', JSON.stringify(seen));
+            };
+        }
+
+        // ──────────────────────────────────────────────
+        // PLAYBACK CONTROLS
+        // ──────────────────────────────────────────────
+        document.getElementById('btnPlay').addEventListener('click', () => {
+            if (isRunning) return;
+            document.getElementById('yearEndCard').classList.add('hidden');
+            isRunning = true;
+            document.getElementById('btnPlay').classList.add('hidden');
+            document.getElementById('btnPause').classList.remove('hidden');
+            timer = setInterval(stepMonth, tickSpeedMs);
+        });
+
+        document.getElementById('btnPause').addEventListener('click', () => {
+            isRunning = false;
+            clearInterval(timer);
+            document.getElementById('btnPause').classList.add('hidden');
+            document.getElementById('btnPlay').classList.remove('hidden');
+        });
+
+        document.getElementById('btnReset').addEventListener('click', resetSimulation);
+
+        // Expand/collapse rincian biaya operasional
+        document.getElementById('opexToggle').addEventListener('click', () => {
+            const bd = document.getElementById('opexBreakdown');
+            const caret = document.getElementById('opexCaret');
+            bd.classList.toggle('hidden');
+            caret.style.transform = bd.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(90deg)';
+        });
+
+        // DEMO MODE
+        document.getElementById('btnDemo').addEventListener('click', () => {
+            localStorage.removeItem('tunaTutorialSeen'); // Reset tutorial flag
+            activeScenario = 'normal';
+            document.getElementById('scenarioSelect').value = 'normal';
+            renderScenarioBanner();
+
+            resetSimulation();
+
+            // Force interesting visual state (overfishing fast)
+            fleet = 35;
+            portBudget = 0;
+            tickSpeedMs = 150; // Faster playback
+            document.getElementById('chkYearPause').checked = false; // Disable pause to show time-lapse
+
+            // Auto Play
+            if (!isRunning) {
+                document.getElementById('yearEndCard').classList.add('hidden');
+                isRunning = true;
+                document.getElementById('btnPlay').classList.add('hidden');
+                document.getElementById('btnPause').classList.remove('hidden');
+                timer = setInterval(stepMonth, tickSpeedMs);
+            }
+        });
+
+        document.getElementById('btnContinueYear').addEventListener('click', () => {
+            document.getElementById('yearEndCard').classList.add('hidden');
+            if (!isRunning && currentTick < maxTicks && currentN > 0) {
+                isRunning = true;
+                document.getElementById('btnPlay').classList.add('hidden');
+                document.getElementById('btnPause').classList.remove('hidden');
+                timer = setInterval(stepMonth, tickSpeedMs);
+            }
+        });
+
+        document.querySelectorAll('.btnBuy').forEach(b => b.addEventListener('click', () => buyShips(parseInt(b.dataset.qty, 10))));
+        document.querySelectorAll('.btnSell').forEach(b => b.addEventListener('click', () => sellShips(parseInt(b.dataset.qty, 10))));
+
+        // Admin Salary Control
+        document.querySelectorAll('input[name="adminSalary"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                adminSalaryRatio = parseFloat(e.target.value);
+            });
+        });
+
+        // Info Tooltips
+        const INFO_TEXTS = {
+            pnl: "Seperti laba-rugi warung. Pendapatan = uang masuk dari menjual ikan (harga \u00d7 tonase tangkapan). Biaya Operasional = pengeluaran melaut: BBM, perbekalan & perlengkapan awak, serta perawatan kapal \u2014 klik untuk rincian. Profit Bersih = Pendapatan \u2212 Biaya Operasional. Inilah uang yang tersisa untuk dibagi ke nelayan dan pengelolaan pelabuhan."
+        };
+
+        document.querySelectorAll('.info-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const popover = document.getElementById('infoPopover');
+                popover.textContent = INFO_TEXTS[btn.dataset.info];
+                popover.classList.remove('hidden');
+
+                const rect = btn.getBoundingClientRect();
+                popover.style.top = `${rect.bottom + window.scrollY + 8}px`;
+                popover.style.left = `${Math.max(10, rect.left + window.scrollX - 128 + (rect.width / 2))}px`;
+            });
+        });
+
+        document.addEventListener('click', () => {
+            document.getElementById('infoPopover').classList.add('hidden');
+        });
+
+        // ──────────────────────────────────────────────
+        // SCENARIO UI — selector + banner
+        // ──────────────────────────────────────────────
+        function renderScenarioBanner() {
+            const sc = SCENARIOS[activeScenario];
+            document.getElementById('scenarioBannerTitle').textContent = sc.label;
+            document.getElementById('scenarioBannerText').textContent = sc.banner;
+            document.getElementById('scenarioBannerHint').textContent = '⚙ ' + sc.twist;
+        }
+
+        document.getElementById('scenarioSelect').addEventListener('change', (e) => {
+            activeScenario = e.target.value;
+            showStageIntro(activeScenario);
+            renderScenarioBanner();
+            resetSimulation();
+            if (!document.getElementById('adminPanel').classList.contains('hidden')) populateAdminPanel();
+        });
+
+        // ──────────────────────────────────────────────
+        // ADMIN PANEL
+        // ──────────────────────────────────────────────
+        const ID = (s) => document.getElementById(s);
+
+        function populateAdminPanel() {
+            const sc = SCENARIOS[activeScenario];
+            ID('adm_r').value = sc.params.r;
+            ID('adm_K').value = sc.params.K;
+            ID('adm_q').value = q;
+            ID('adm_P').value = sc.params.P;
+            ID('adm_c').value = sc.params.c;
+            ID('adm_delta').value = delta;
+            ID('adm_mgmt').value = MGMT_CUT;
+            ID('adm_harborFee').value = HARBOR_FEE_PER_SHIP;
+            ID('adm_shipCost').value = SHIP_COST;
+            ID('adm_shipSell').value = SHIP_SELL;
+            ID('adm_shipMaint').value = SHIP_MAINT;
+            ID('adm_effortPerShip').value = EFFORT_PER_SHIP;
+            ID('adm_maxFleet').value = MAX_FLEET;
+            ID('adm_initFleet').value = sc.initFleet;
+            ID('adm_initBudget').value = sc.initBudget;
+            ID('adm_startN').value = sc.startN_ratio;
+            ID('adm_jFish').value = J_FISHERMEN;
+            ID('adm_umr').value = UMR_MONTHLY;
+            ID('adm_jAdmin').value = J_ADMIN;
+            ID('adm_adminSalary').value = ADMIN_SALARY;
+        }
+
+        function applyAdminParams() {
+            const sc = SCENARIOS[activeScenario];
+            sc.params.r = parseFloat(ID('adm_r').value);
+            sc.params.K = parseFloat(ID('adm_K').value);
+            sc.params.P = parseFloat(ID('adm_P').value);
+            sc.params.c = parseFloat(ID('adm_c').value);
+            sc.initFleet = parseInt(ID('adm_initFleet').value, 10);
+            sc.initBudget = parseFloat(ID('adm_initBudget').value);
+            sc.startN_ratio = parseFloat(ID('adm_startN').value);
+
+            q = parseFloat(ID('adm_q').value);
+            delta = parseFloat(ID('adm_delta').value);
+            MGMT_CUT = parseFloat(ID('adm_mgmt').value);
+            HARBOR_FEE_PER_SHIP = parseFloat(ID('adm_harborFee').value);
+            SHIP_COST = parseFloat(ID('adm_shipCost').value);
+            SHIP_SELL = parseFloat(ID('adm_shipSell').value);
+            SHIP_MAINT = parseFloat(ID('adm_shipMaint').value);
+            EFFORT_PER_SHIP = parseFloat(ID('adm_effortPerShip').value);
+            MAX_FLEET = parseInt(ID('adm_maxFleet').value, 10);
+            J_FISHERMEN = parseInt(ID('adm_jFish').value, 10);
+            UMR_MONTHLY = parseFloat(ID('adm_umr').value);
+            J_ADMIN = parseInt(ID('adm_jAdmin').value, 10);
+            ADMIN_SALARY = parseFloat(ID('adm_adminSalary').value);
+
+            refreshShipButtonLabels();
+            resetSimulation();
+            ID('adminStatus').textContent = `✓ Applied @ ${new Date().toLocaleTimeString('id-ID')}`;
+        }
+
+        function restoreAdminDefaults() {
+            J_FISHERMEN = ADMIN_DEFAULTS.J_FISHERMEN;
+            UMR_MONTHLY = ADMIN_DEFAULTS.UMR_MONTHLY;
+            J_ADMIN = ADMIN_DEFAULTS.J_ADMIN;
+            ADMIN_SALARY = ADMIN_DEFAULTS.ADMIN_SALARY;
+            MGMT_CUT = ADMIN_DEFAULTS.MGMT_CUT;
+            MAX_FLEET = ADMIN_DEFAULTS.MAX_FLEET;
+            SHIP_COST = ADMIN_DEFAULTS.SHIP_COST;
+            SHIP_SELL = ADMIN_DEFAULTS.SHIP_SELL;
+            SHIP_MAINT = ADMIN_DEFAULTS.SHIP_MAINT;
+            HARBOR_FEE_PER_SHIP = ADMIN_DEFAULTS.HARBOR_FEE_PER_SHIP;
+            q = ADMIN_DEFAULTS.q;
+            EFFORT_PER_SHIP = ADMIN_DEFAULTS.EFFORT_PER_SHIP;
+            delta = ADMIN_DEFAULTS.delta;
+            Object.keys(ADMIN_DEFAULTS.scenarios).forEach(k => {
+                SCENARIOS[k] = JSON.parse(JSON.stringify(ADMIN_DEFAULTS.scenarios[k]));
+            });
+            refreshShipButtonLabels();
+            populateAdminPanel();
+            resetSimulation();
+            ID('adminStatus').textContent = '↺ Defaults restored';
+        }
+
+        ID('btnAdmin').addEventListener('click', () => {
+            const panel = ID('adminPanel');
+            if (panel.classList.contains('hidden')) { panel.classList.remove('hidden'); populateAdminPanel(); }
+            else panel.classList.add('hidden');
+        });
+        ID('btnAdminClose').addEventListener('click', () => ID('adminPanel').classList.add('hidden'));
+        ID('btnAdminApply').addEventListener('click', applyAdminParams);
+        ID('btnAdminDefaults').addEventListener('click', restoreAdminDefaults);
+
+        // ──────────────────────────────────────────────
+        // TUTORIAL
+        // ──────────────────────────────────────────────
+        const tutorialSteps = [
+            {
+                target: 'fleetSection', align: 'right',
+                title: 'Kelola Armadamu',
+                text: 'Beli atau jual kapal untuk mengatur seberapa keras nelayanmu bekerja. Ini adalah keputusan utamamu sebagai manajer.'
+            },
+            {
+                target: 'welfareCards', align: 'bottom',
+                title: 'Kesejahteraan Komunitasmu',
+                text: 'Pastikan upah nelayan dan gaji admin selalu di atas standar layak. Ini tolak ukur keberhasilan simulasimu.'
+            },
+            {
+                target: 'btnDemo', align: 'top',
+                title: 'Lihat Simulasi Berjalan',
+                text: 'Klik tombol Demo untuk melihat bagaimana populasi ikan dan kondisi ekonomi berubah dari waktu ke waktu. Mulailah dari sini sebelum mencoba sendiri.'
+            }
+        ];
+
+        let currentStep = 0;
+
+        function initTutorial() {
+            if (!localStorage.getItem('tunaTutorialSeen')) {
+                document.getElementById('welcomeModal').classList.remove('hidden');
+            }
+        }
+
+        function startTutorial() {
+            document.getElementById('welcomeModal').classList.add('hidden');
+            document.getElementById('tutorialOverlay').classList.remove('hidden');
+            document.getElementById('tutorialTooltip').classList.remove('hidden');
+            currentStep = 0;
+            showTutorialStep();
+        }
+
+        function showTutorialStep() {
+            document.querySelectorAll('.tut-highlight').forEach(el => el.classList.remove('tut-highlight'));
+
+            if (currentStep >= tutorialSteps.length) { endTutorial(); return; }
+
+            const step = tutorialSteps[currentStep];
+            const targetEl = document.getElementById(step.target);
+
+            if (targetEl) {
+                targetEl.classList.add('tut-highlight');
+                document.getElementById('tutTitle').textContent = step.title;
+                document.getElementById('tutText').textContent = step.text;
+                document.getElementById('tutProgress').textContent = `${currentStep + 1}/${tutorialSteps.length}`;
+                document.getElementById('tutNext').textContent = currentStep === tutorialSteps.length - 1 ? 'Siap, saya coba! ➔' : 'Lanjut ➔';
+
+                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                setTimeout(() => {
+                    const rect = targetEl.getBoundingClientRect();
+                    const tooltip = document.getElementById('tutorialTooltip');
+                    let top = rect.bottom + window.scrollY + 16;
+                    let left = rect.left + window.scrollX;
+
+                    if (window.innerWidth >= 768) {
+                        if (step.align === 'right') {
+                            top = rect.top + window.scrollY;
+                            left = rect.right + window.scrollX + 16;
+                        } else if (step.align === 'top') {
+                            top = rect.top + window.scrollY - tooltip.getBoundingClientRect().height - 16;
+                        }
+                    } else {
+                        left = 16;
+                    }
+
+                    tooltip.style.top = `${top}px`;
+                    tooltip.style.left = `${left}px`;
+                }, 300);
+            }
+        }
+
+        function endTutorial() {
+            document.querySelectorAll('.tut-highlight').forEach(el => el.classList.remove('tut-highlight'));
+            document.getElementById('tutorialOverlay').classList.add('hidden');
+            document.getElementById('tutorialTooltip').classList.add('hidden');
+            localStorage.setItem('tunaTutorialSeen', 'true');
+        }
+
+        document.getElementById('btnStartTour').addEventListener('click', startTutorial);
+        document.getElementById('btnSkipTour').addEventListener('click', () => {
+            document.getElementById('welcomeModal').classList.add('hidden');
+            localStorage.setItem('tunaTutorialSeen', 'true');
+        });
+        document.getElementById('tutNext').addEventListener('click', () => { currentStep++; showTutorialStep(); });
+        document.getElementById('tutSkip').addEventListener('click', endTutorial);
+        document.getElementById('btnRestartTutorial').addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(startTutorial, 300);
+        });
+
+        // ── INIT ──
+        renderScenarioSelector();
+        renderScenarioBanner();
+        resetSimulation();
+        initTutorial();
+        renderRunHistory();
+    </script>
+</body>
+
+</html>
