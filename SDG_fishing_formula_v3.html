@@ -694,7 +694,7 @@
         let unlockedStages = ['normal'];
         let completedStages = [];
 
-        const savedProgress = localStorage.getItem('knoversaStageProgress');
+        const savedProgress = localStorage.getItem('knoveraStageProgress');
         if (savedProgress) {
             const parsed = JSON.parse(savedProgress);
             unlockedStages = parsed.unlockedStages || ['normal'];
@@ -1245,7 +1245,7 @@
         // RUN HISTORY
         // ──────────────────────────────────────────────
         function saveRunHistory(reflection) {
-            const history = JSON.parse(localStorage.getItem('knoversaRunHistory') || '[]');
+            const history = JSON.parse(localStorage.getItem('knoveraRunHistory') || '[]');
             history.push({
                 date: new Date().toISOString(),
                 scenario: activeScenario,
@@ -1263,7 +1263,7 @@
                 events: runEvents.slice(),
                 popSeries: popData.filter((_, i) => i % 12 === 0).map((p, idx) => ({ year: idx, popTon: Math.round(p) }))
             });
-            localStorage.setItem('knoversaRunHistory', JSON.stringify(history));
+            localStorage.setItem('knoveraRunHistory', JSON.stringify(history));
             renderRunHistory();
         }
 
@@ -1323,7 +1323,7 @@
         }
 
         function renderRunHistory() {
-            const history = JSON.parse(localStorage.getItem('knoversaRunHistory') || '[]');
+            const history = JSON.parse(localStorage.getItem('knoveraRunHistory') || '[]');
             history.sort((a, b) => new Date(b.date) - new Date(a.date));
             _histCache = history;
             document.getElementById('historyCount').textContent = `${history.length} run`;
@@ -1381,7 +1381,7 @@
         }
 
         function downloadRunData() {
-            const data = localStorage.getItem('knoversaRunHistory') || '[]';
+            const data = localStorage.getItem('knoveraRunHistory') || '[]';
             const blob = new Blob([data], { type: 'application/json' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
@@ -1391,7 +1391,7 @@
 
         function clearRunData() {
             if (!confirm('Hapus SEMUA riwayat run (termasuk data asli murid)?')) return;
-            localStorage.removeItem('knoversaRunHistory');
+            localStorage.removeItem('knoveraRunHistory');
             renderRunHistory();
         }
 
@@ -1431,7 +1431,7 @@
             return { N, tick, flt, cum, npvAcc, peak, events, series, K: PP.K };
         }
         function generateSampleRuns(cohort) {
-            const history = JSON.parse(localStorage.getItem('knoversaRunHistory') || '[]');
+            const history = JSON.parse(localStorage.getItem('knoveraRunHistory') || '[]');
             for (let i = 0; i < cohort; i++) {
                 const P = _mkPolicies(_jit(i));
                 _LINEUP.forEach(([scen, pkey, name], k) => {
@@ -1447,7 +1447,7 @@
                     });
                 });
             }
-            localStorage.setItem('knoversaRunHistory', JSON.stringify(history));
+            localStorage.setItem('knoveraRunHistory', JSON.stringify(history));
             renderRunHistory();
         }
 
@@ -1483,7 +1483,7 @@
         // STAGE GATE LOGIC
         // ──────────────────────────────────────────────
         function saveStageProgress() {
-            localStorage.setItem('knoversaStageProgress', JSON.stringify({ unlockedStages, completedStages }));
+            localStorage.setItem('knoveraStageProgress', JSON.stringify({ unlockedStages, completedStages }));
         }
 
         function unlockNextStage(completedKey) {
@@ -1556,7 +1556,7 @@
             const intro = STAGE_INTROS[scenarioKey];
             if (!intro) return;
 
-            const seen = JSON.parse(localStorage.getItem('knoversaIntrosSeen') || '[]');
+            const seen = JSON.parse(localStorage.getItem('knoveraIntrosSeen') || '[]');
             if (seen.includes(scenarioKey)) return;
 
             document.getElementById('stageIntroEmoji').textContent = intro.emoji;
@@ -1569,7 +1569,7 @@
             document.getElementById('stageIntroBtn').onclick = () => {
                 document.getElementById('stageIntroModal').classList.add('hidden');
                 seen.push(scenarioKey);
-                localStorage.setItem('knoversaIntrosSeen', JSON.stringify(seen));
+                localStorage.setItem('knoveraIntrosSeen', JSON.stringify(seen));
             };
         }
 
