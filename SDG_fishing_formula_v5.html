@@ -45,6 +45,98 @@
             pointer-events: none;
             transition: all 0.3s ease;
         }
+
+        /* ── Spotlight (Phase-1 scripted tutorial) ── */
+        .spotlight-pop {
+            position: relative;
+            z-index: 85 !important;
+            border-radius: 0.85rem;
+            scroll-margin-top: 90px;
+            animation: spotPulse 2.2s ease-in-out infinite;
+        }
+
+        @keyframes spotPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.9), 0 0 38px 6px rgba(37, 99, 235, 0.45), 0 18px 45px -10px rgba(0, 0, 0, 0.55);
+            }
+
+            50% {
+                box-shadow: 0 0 0 6px rgba(96, 165, 250, 1), 0 0 56px 14px rgba(37, 99, 235, 0.65), 0 18px 45px -10px rgba(0, 0, 0, 0.55);
+            }
+        }
+
+        /* ── Duolingo-style word bank ── */
+        .word-pill {
+            transition: transform .12s ease, opacity .12s ease, border-color .12s ease, background-color .12s ease;
+            cursor: pointer;
+        }
+
+        .word-pill:active {
+            transform: scale(0.93);
+        }
+
+        .blank-slot,
+        .filled-slot {
+            transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+        }
+
+        @keyframes shakeX {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20%,
+            60% {
+                transform: translateX(-6px);
+            }
+
+            40%,
+            80% {
+                transform: translateX(6px);
+            }
+        }
+
+        .shake {
+            animation: shakeX .42s ease;
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0.55);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .pop-in {
+            animation: popIn .16s ease;
+        }
+
+        @keyframes successPulse {
+            0% {
+                transform: scale(1);
+            }
+
+            45% {
+                transform: scale(1.06);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .success-pulse {
+            animation: successPulse .5s ease;
+        }
     </style>
 </head>
 
@@ -280,7 +372,7 @@
                 </div>
 
                 <!-- ═══ Laba–Rugi (P&L) Panel ═══ -->
-                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+                <div id="pnlCard" class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
                     <div class="flex items-center justify-between mb-3">
                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">📊 Laba–Rugi Bulan Ini
                         </h3>
@@ -338,7 +430,7 @@
                 </div>
 
                 <!-- ═══ Populasi Ikan (Ton) ═══ -->
-                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+                <div id="popCard" class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
                     <div class="flex items-center justify-between">
                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">🐟 Populasi Ikan</h3>
                         <span id="popDelta" class="text-[11px] font-bold tabular-nums text-slate-300">—</span>
@@ -507,16 +599,16 @@
     <div id="welcomeModal" class="hidden fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
             <div class="text-5xl mb-4">🎣</div>
-            <h2 class="text-2xl font-bold text-slate-800 mb-2">Kamu adalah Manajer Pelabuhan</h2>
+            <h2 class="text-2xl font-bold text-slate-800 mb-2">Selamat datang di Pelabuhan Knovera</h2>
             <p class="text-sm text-slate-600 mb-6 leading-relaxed">
-                Sebuah komunitas nelayan mempercayakanmu untuk mengelola bisnis perikanan di daerah mereka. 1.500
-                nelayan dan 20 staf administrasi bergantung pada keputusanmu selama 10 tahun ke depan.
+                Kamu adalah <b>manajer baru</b>. 1.500 nelayan dan 20 staf kantor bergantung padamu. Sebelum mulai
+                bekerja, mari kita lihat dulu apa yang terjadi pada manajer <i>sebelum</i> kamu.
             </p>
             <button id="btnStartTour"
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-200">Mulai
-                Tur</button>
-            <button id="btnSkipTour" class="mt-4 text-sm font-semibold text-slate-400 hover:text-slate-600">Lewati
-                Tur</button>
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-200">▶
+                Mulai Pelatihan</button>
+            <button id="btnSkipTour" class="mt-4 text-sm font-semibold text-slate-400 hover:text-slate-600">Langsung ke
+                Sandbox</button>
         </div>
     </div>
 
@@ -586,6 +678,102 @@
                 class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl">
                 Mulai Tantangan
             </button>
+        </div>
+    </div>
+
+    <!-- ═══════════════ PEDAGOGY QUESTION MODAL ═══════════════ -->
+    <div id="pedagogyModal" class="hidden fixed inset-0 bg-slate-900/80 z-[65] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
+            <!-- Header -->
+            <div class="flex items-start gap-3 mb-4">
+                <span id="pedEmoji" class="text-4xl leading-none mt-1"></span>
+                <div>
+                    <p id="pedBadge" class="text-[10px] uppercase font-bold text-blue-500 tracking-widest mb-0.5"></p>
+                    <h2 id="pedTitle" class="text-lg font-bold text-slate-800 leading-snug"></h2>
+                </div>
+            </div>
+            <!-- Body / question -->
+            <p id="pedBody" class="text-sm text-slate-600 mb-4 leading-relaxed"></p>
+            <!-- MC Options -->
+            <div id="pedOptions" class="hidden space-y-2 mb-3"></div>
+            <!-- Open Text -->
+            <textarea id="pedTextarea" rows="3"
+                class="hidden w-full border-2 border-slate-200 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-400 mb-3"
+                placeholder="Tulis pemikiranmu..."></textarea>
+            <!-- Feedback -->
+            <div id="pedFeedback" class="hidden p-3 rounded-lg text-sm mb-3 border leading-relaxed"></div>
+            <!-- Continue -->
+            <button id="pedContinue"
+                class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all">
+                Pilih jawaban dulu ➔
+            </button>
+            <p class="text-center text-[10px] text-slate-400 mt-2">Simulasi dilanjutkan setelah kamu menjawab.</p>
+        </div>
+    </div>
+
+    <!-- ═══════════════ PHASE-1 SCRIPTED TUTORIAL: SPOTLIGHT + DUOLINGO PUZZLE ═══════════════ -->
+    <!-- Dark spotlight overlay (target elements pop above it via .spotlight-pop) -->
+    <div id="spotlightOverlay" class="hidden fixed inset-0 bg-slate-900/80 z-[80] transition-opacity"></div>
+
+    <!-- Duolingo-style sentence builder (bottom sheet) -->
+    <div id="puzzleSheet" class="hidden fixed bottom-0 left-0 right-0 z-[90] px-3 sm:px-4">
+        <div class="max-w-2xl mx-auto bg-white rounded-t-3xl shadow-2xl border-t-2 border-x border-blue-100 p-6 pb-7">
+            <p id="puzzleBadge" class="text-[10px] uppercase font-bold text-blue-500 tracking-widest mb-1"></p>
+            <p id="puzzleQuestion" class="text-base sm:text-lg font-bold text-slate-800 mb-4 leading-snug"></p>
+
+            <!-- sentence track (blanks fill here) -->
+            <div id="sentenceTrack"
+                class="text-base text-slate-700 leading-loose mb-4 min-h-[44px] bg-slate-50 rounded-xl p-3 border border-slate-100">
+            </div>
+
+            <!-- word bank -->
+            <div id="wordBank" class="flex flex-wrap gap-2 mb-3 border-t border-dashed border-slate-200 pt-4"></div>
+
+            <!-- feedback line -->
+            <div id="puzzleFeedback" class="hidden text-sm font-bold mb-3"></div>
+
+            <button id="puzzleCheck" disabled
+                class="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold py-3 rounded-xl transition-all uppercase tracking-wide">
+                Periksa
+            </button>
+        </div>
+    </div>
+
+    <!-- Mentor reflection (Section 4: open-ended) -->
+    <div id="tutorMentorModal" class="hidden fixed inset-0 bg-slate-900/80 z-[95] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
+            <div class="flex items-start gap-3 mb-3">
+                <span class="text-4xl leading-none mt-1">🧑‍✈️</span>
+                <div>
+                    <p class="text-[10px] uppercase font-bold text-blue-500 tracking-widest">Kepala Nelayan</p>
+                    <h2 class="text-lg font-bold text-slate-800 leading-snug">Sebentar, Manajer…</h2>
+                </div>
+            </div>
+            <p id="mentorPrompt" class="text-sm text-slate-600 mb-3 leading-relaxed"></p>
+            <textarea id="mentorTextarea" rows="3"
+                class="w-full border-2 border-slate-200 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-400 mb-2"
+                placeholder="Tulis pendapatmu…"></textarea>
+            <p class="text-[11px] text-slate-400 mb-3">Tidak ada jawaban benar atau salah di sini — ini hanya untuk
+                menyiapkan pikiranmu.</p>
+            <button id="mentorSubmit"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all">Lanjut
+                ➔</button>
+        </div>
+    </div>
+
+    <!-- Training complete (Section 5: transition to sandbox) -->
+    <div id="tutorCompleteModal"
+        class="hidden fixed inset-0 bg-slate-900/80 z-[95] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
+            <div class="text-5xl mb-4">🎓</div>
+            <h2 class="text-2xl font-bold text-slate-800 mb-2">Pelatihan Selesai!</h2>
+            <p class="text-sm text-slate-600 mb-6 leading-relaxed">
+                Sekarang giliranmu. Untuk tahap pertama ini, coba temukan <b>jumlah kapal ideal</b> agar nelayan dan
+                staf tetap sejahtera selama 10 tahun.
+            </p>
+            <button id="tutorCompleteBtn"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-200">Mulai
+                Misi Normal</button>
         </div>
     </div>
 
@@ -723,6 +911,22 @@
             lastDeltaN = 0;
         let adminSalaryRatio = 1.0;
 
+        // ── Pedagogy state tracking ──
+        let prevPopRatio = 1.0;
+        let prevFleet = 4;
+        let prevProfit = 0;
+        let prevAdminWage = 0;
+        let pedagogyActive = false;
+        let firedTriggers = new Set();
+        let _pedContinueHandler = null;
+
+        // ── Scripted tutorial (Phase 1) state ──
+        let tutorialMode = false;
+        let tutorialCheckpointIdx = 0;
+        let tutorialAttempts = [0, 0];
+        let _puzzleState = null;
+        let _audioCtx = null;
+
         const formatIDR = (val) => new Intl.NumberFormat('id-ID', {
             style: 'currency', currency: 'IDR', maximumFractionDigits: 0
         }).format(val);
@@ -857,6 +1061,22 @@
 
             updateUI(perFisherMonthly, perAdminMonthly);
 
+            // ── Update prev-state trackers for pedagogy triggers ──
+            prevPopRatio = params.K > 0 ? currentN / params.K : 0;
+            prevFleet = fleet;
+            prevProfit = lastNetProfit;
+            prevAdminWage = lastAdminWage;
+
+            // ── Scripted tutorial takes over the loop entirely ──
+            if (tutorialMode) {
+                checkTutorialCheckpoint();
+                // Safety net: never let the demo crash the stock to zero before a checkpoint
+                if (isRunning && currentN <= 0) { clearInterval(timer); isRunning = false; }
+                return;
+            }
+
+            checkPedagogyTriggers();
+
             if (currentTick >= maxTicks || currentN <= 0) {
                 endRun();
             } else if (currentTick % 12 === 0 && document.getElementById('chkYearPause').checked) {
@@ -971,10 +1191,14 @@
                 }
             }
 
-            const canBuy = portBudget >= SHIP_COST && fleet < MAX_FLEET;
-            const canSell = fleet > 0;
-            document.querySelectorAll('.btnBuy').forEach(b => b.disabled = !canBuy);
-            document.querySelectorAll('.btnSell').forEach(b => b.disabled = !canSell);
+            if (tutorialMode) {
+                document.querySelectorAll('.btnBuy, .btnSell').forEach(b => b.disabled = true);
+            } else {
+                const canBuy = portBudget >= SHIP_COST && fleet < MAX_FLEET;
+                const canSell = fleet > 0;
+                document.querySelectorAll('.btnBuy').forEach(b => b.disabled = !canBuy);
+                document.querySelectorAll('.btnSell').forEach(b => b.disabled = !canSell);
+            }
 
             simChart.data.datasets[0].data = popData;
             simChart.data.datasets[1].data = wageData;
@@ -1075,6 +1299,15 @@
             lastRevenue = lastFuel = lastSupplies = lastMaint = lastOpex = lastNetProfit = 0;
             lastDeltaN = 0;
 
+            // Reset pedagogy state
+            firedTriggers.clear();
+            pedagogyActive = false;
+            prevPopRatio = 1.0;
+            prevFleet = sc.initFleet;
+            prevProfit = 0;
+            prevAdminWage = 0;
+            document.getElementById('pedagogyModal').classList.add('hidden');
+
             adminSalaryRatio = 1.0;
             const adminSalaryRadio = document.querySelector('input[name="adminSalary"][value="1.0"]');
             if (adminSalaryRadio) adminSalaryRadio.checked = true;
@@ -1140,6 +1373,285 @@
             elnino_bbm: 'Kamu menghadapi dua tekanan sekaligus. Mana yang lebih sulit diatasi — biaya BBM atau pertumbuhan ikan yang lambat? Mengapa?',
             overfished: 'Apakah kamu berhasil memulihkan kondisi laut dan kesejahteraan komunitas? Apa yang bisa dan tidak bisa dilakukan seorang manajer sendirian dalam situasi ini?'
         };
+
+        // ══════════════════════════════════════════════
+        // PEDAGOGY TRIGGER SYSTEM
+        // ══════════════════════════════════════════════
+        const PEDAGOGY_TRIGGERS = [
+            {
+                id: 'orientation',
+                badge: 'Orientasi · Sebelum Mulai',
+                emoji: '🎯',
+                title: 'Kamu Adalah Manajer Pelabuhan',
+                body: () => '1.500 nelayan dan 20 staf admin bergantung pada keputusanmu. <b>Satu pertanyaan sebelum kita mulai:</b> dari semua angka di layar ini, apa yang <u>bisa</u> kamu kendalikan langsung?',
+                condition: s => s.tick === 1,
+                type: 'mc',
+                options: [
+                    { text: 'Jumlah kapal yang beroperasi', correct: true },
+                    { text: 'Harga jual ikan di pasar', correct: false },
+                    { text: 'Kecepatan ikan berkembang biak', correct: false },
+                    { text: 'Kondisi cuaca dan musim', correct: false }
+                ],
+                feedback: {
+                    correct: '✓ Tepat. Satu-satunya keputusan yang bisa kamu ambil adalah <b>jumlah kapal</b>. Semua metrik lain — populasi ikan, pendapatan, upah nelayan — adalah <i>konsekuensi</i> dari keputusan itu, bukan kontrol langsung.',
+                    wrong: '× Harga ikan, laju pertumbuhan, dan cuaca ditentukan oleh alam dan pasar — di luar kendalimu. Yang bisa kamu atur hanya <b>armada</b>. Dari keputusan itulah semua konsekuensi mengalir.'
+                }
+            },
+            {
+                id: 'pop_declining',
+                badge: 'Pengamatan · Bulan ' + 0,
+                emoji: '📉',
+                title: 'Populasi Ikan Mulai Turun',
+                body: s => `Populasi ikan baru saja melewati batas 75% kapasitas laut — sekarang di <b>${Math.round(s.popRatio * 100)}%</b>. Apa yang paling mungkin menjadi penyebab utama penurunan ini?`,
+                condition: s => s.popRatio < 0.75 && s.prevPopRatio >= 0.75,
+                type: 'mc',
+                options: [
+                    { text: 'Tangkapan melebihi kemampuan laut untuk memulihkan diri', correct: true },
+                    { text: 'Harga ikan turun sehingga nelayan menangkap lebih banyak', correct: false },
+                    { text: 'Biaya operasional terlalu tinggi sehingga ada insentif over-fishing', correct: false },
+                    { text: 'Gaji admin menguras kas sehingga tidak ada dana perawatan laut', correct: false }
+                ],
+                feedback: {
+                    correct: '✓ Benar. Populasi turun ketika <b>tangkapan (yield) lebih besar dari pertumbuhan alami</b>. Secara matematis: jika q×E×N > r×N×(1−N/K), stok berkurang setiap bulan. Coba amati grafik populasi saat kamu kurangi armada.',
+                    wrong: '× Harga dan biaya memengaruhi <i>profit</i>, tapi bukan populasi ikan secara langsung. Populasi turun ketika <b>tangkapan melebihi pertumbuhan alami</b>. Rumusnya: ΔN = r×N×(1−N/K) − q×E×N. Coba kurangi armada dan lihat apakah grafik biru berbalik naik.'
+                }
+            },
+            {
+                id: 'msy_zone',
+                badge: 'Konsep Kunci · MSY',
+                emoji: '🐟',
+                title: 'Zona Maximum Sustainable Yield',
+                body: s => `Populasi ikan kini sekitar <b>50% kapasitas laut</b> (~${formatTon(s.currentN)}). Para ilmuwan menyebut titik ini <i>Maximum Sustainable Yield (MSY)</i>. Mengapa titik ini penting dalam pengelolaan perikanan?`,
+                condition: s => s.popRatio <= 0.55 && s.popRatio >= 0.44 && s.prevPopRatio > 0.55,
+                type: 'mc',
+                options: [
+                    { text: 'Di titik ini ikan berkembang biak paling cepat — panen bisa berkelanjutan', correct: true },
+                    { text: 'Di titik ini kapal paling efisien menangkap ikan', correct: false },
+                    { text: 'Di titik ini profit pelabuhan otomatis paling tinggi', correct: false },
+                    { text: 'Di titik ini biaya operasional per ton ikan paling rendah', correct: false }
+                ],
+                feedback: {
+                    correct: '✓ Tepat! Rumus Schaefer: pertumbuhan = r × N × (1 − N/K). Ini maksimal saat N = K/2. Artinya laut "memproduksi" ikan paling banyak per tahun di sini. Strategi ideal: jaga populasi mendekati 50% K dengan menyeimbangkan tangkapan dan pertumbuhan.',
+                    wrong: '× Di N = ½K, <b>pertumbuhan alami ikan mencapai puncaknya</b> — bukan efisiensi kapal atau profit. Jika kamu menangkap tepat sebanyak pertumbuhan alami, stok tidak berkurang. Inilah dasar pengelolaan perikanan berkelanjutan.'
+                }
+            },
+            {
+                id: 'critical_pop',
+                badge: 'Peringatan Kritis · Zona Kolaps',
+                emoji: '🚨',
+                title: 'Populasi Di Bawah 30% — Zona Kritis!',
+                body: s => `Populasi ikan tinggal <b>${Math.round(s.popRatio * 100)}%</b> dari kapasitas laut. Di bawah level ini, pertumbuhan alami melambat drastis dan pemulihan bisa memakan waktu bertahun-tahun. Sebagai manajer, langkah apa yang paling tepat <i>sekarang</i>?`,
+                condition: s => s.popRatio < 0.30 && s.prevPopRatio >= 0.30,
+                type: 'mc',
+                options: [
+                    { text: 'Kurangi atau hentikan sementara operasi kapal agar laut bisa pulih', correct: true },
+                    { text: 'Tambah kapal agar pendapatan cukup menutupi kerugian', correct: false },
+                    { text: 'Pertahankan armada — tunggu harga ikan naik', correct: false },
+                    { text: 'Tidak perlu panik, ikan akan pulih sendiri tanpa intervensi', correct: false }
+                ],
+                feedback: {
+                    correct: '✓ Benar. Saat populasi rendah, pertumbuhan alami melambat. Mengurangi armada adalah satu-satunya cara mengurangi tekanan. Ini menyakitkan secara ekonomi jangka pendek, tapi satu-satunya jalan menghindari kolaps total.',
+                    wrong: '× Menambah kapal saat populasi kritis mempercepat kepunahan — ini pola klasik "tragedy of the commons". Satu-satunya jalan: <b>kurangi armada sekarang</b> dan beri laut waktu memulihkan diri. Keputusan ini memang mahal, tapi alternatifnya lebih buruk.'
+                }
+            },
+            {
+                id: 'first_loss',
+                badge: 'Kondisi Keuangan · Defisit',
+                emoji: '💸',
+                title: 'Operasional Merugi Bulan Ini',
+                body: () => 'Profit bulan ini <b>negatif</b> — biaya operasional (BBM, perbekalan, perawatan) melebihi pendapatan dari penjualan ikan. Jelaskan: siapa yang paling langsung terdampak dari kondisi ini, dan apa yang bisa kamu lakukan?',
+                condition: s => s.profit < 0 && s.prevProfit >= 0,
+                type: 'open',
+                placeholder: 'Contoh: nelayan tidak mendapat upah karena... dan saya bisa... dengan cara...'
+            },
+            {
+                id: 'year3_predict',
+                badge: 'Prediksi · Tahun ke-3',
+                emoji: '🔮',
+                title: 'Evaluasi Tengah Jalan',
+                body: () => 'Kamu sudah mengelola pelabuhan selama <b>3 tahun</b>. Lihat grafik populasi ikan dan kondisi keuangan sekarang. <b>Prediksi:</b> apa yang akan terjadi dalam 3 tahun ke depan jika strategimu tidak berubah?',
+                condition: s => s.tick === 36,
+                type: 'open',
+                placeholder: 'Prediksimu tentang populasi ikan, profit, dan kesejahteraan nelayan di tahun ke-6...'
+            },
+            {
+                id: 'admin_unpaid',
+                badge: 'Krisis Manajemen · Gaji Admin',
+                emoji: '👔',
+                title: 'Staf Admin Tidak Terbayar',
+                body: () => 'Kas pelabuhan tidak cukup untuk membayar gaji staf administrasi bulan ini. Dalam sistem ini, gaji admin dibayar dari pajak manajemen (sebagian profit operasional). Siapa yang bertanggung jawab atas kondisi ini?',
+                condition: s => s.adminWage === 0 && s.prevAdminWage > 0,
+                type: 'mc',
+                options: [
+                    { text: 'Manajer armada — keputusan operasional menentukan profit yang tersedia', correct: true },
+                    { text: 'Nelayan — mereka harus menerima upah lebih kecil agar ada sisa untuk admin', correct: false },
+                    { text: 'Pemerintah — harusnya ada subsidi untuk situasi seperti ini', correct: false },
+                    { text: 'Tidak ada yang bertanggung jawab — ini konsekuensi tak terhindarkan', correct: false }
+                ],
+                feedback: {
+                    correct: '✓ Tepat. Sumber gaji admin adalah pajak dari profit (MGMT_CUT × profit). Jika profit kecil atau negatif, tidak ada dana. <b>Keputusan armada yang kamu buat menentukan profit — dan pada akhirnya menentukan apakah semua orang terbayar.</b>',
+                    wrong: '× Dalam model ini, gaji admin berasal dari <b>pajak atas profit operasional</b>. Jika profit kecil atau negatif, tidak ada dana. Manajer armada — yaitu kamu — yang menentukan seberapa besar profit yang dihasilkan dengan mengatur jumlah kapal.'
+                }
+            },
+            {
+                id: 'large_fleet',
+                badge: 'Trade-off · Armada Besar',
+                emoji: '🚢',
+                title: 'Armada Besar — Apa Konsekuensinya?',
+                body: s => `Armadamu kini <b>${s.fleet} kapal</b>. Kapasitas tangkap yang besar menghasilkan pendapatan tinggi — tapi ada sisi lain. Dalam jangka panjang, armada yang besar cenderung...`,
+                condition: s => s.fleet >= 30 && s.prevFleet < 30,
+                type: 'mc',
+                options: [
+                    { text: 'Meningkatkan pendapatan jangka pendek tapi menguras populasi ikan jangka panjang', correct: true },
+                    { text: 'Meningkatkan pendapatan dan populasi sekaligus karena efisiensi skala', correct: false },
+                    { text: 'Tidak memengaruhi populasi — ikan tetap tumbuh dengan kecepatan yang sama', correct: false },
+                    { text: 'Menurunkan biaya per kapal karena berbagi infrastruktur pelabuhan', correct: false }
+                ],
+                feedback: {
+                    correct: '✓ Inilah inti dilema pengelolaan perikanan. Armada besar → effort (E) besar → tangkapan besar sekarang → stok berkurang → tangkapan turun → pendapatan turun. Ini siklus yang harus kamu kelola secara aktif, bukan biarkan berjalan sendiri.',
+                    wrong: '× Armada besar meningkatkan effort (E), yang meningkatkan yield = q×E×N. Jika yield > pertumbuhan alami, stok berkurang setiap bulan. Ini adalah <b>trade-off inti</b>: eksploitasi hari ini vs. keberlanjutan masa depan.'
+                }
+            }
+        ];
+
+        // ──────────────────────────────────────────────
+        // PEDAGOGY: CHECK & SHOW
+        // ──────────────────────────────────────────────
+        function checkPedagogyTriggers() {
+            if (pedagogyActive) return;
+            const popRatio = params.K > 0 ? currentN / params.K : 0;
+            const state = {
+                tick: currentTick, popRatio, prevPopRatio,
+                fleet, prevFleet,
+                profit: lastNetProfit, prevProfit,
+                adminWage: lastAdminWage, prevAdminWage,
+                currentN
+            };
+            for (const trigger of PEDAGOGY_TRIGGERS) {
+                if (firedTriggers.has(trigger.id)) continue;
+                if (trigger.condition(state)) {
+                    firedTriggers.add(trigger.id);
+                    showPedagogyModal(trigger, state);
+                    return;
+                }
+            }
+        }
+
+        function showPedagogyModal(trigger, state) {
+            pedagogyActive = true;
+            isRunning = false;
+            clearInterval(timer);
+            document.getElementById('btnPause').classList.add('hidden');
+            document.getElementById('btnPlay').classList.remove('hidden');
+
+            const modal = document.getElementById('pedagogyModal');
+            const optDiv = document.getElementById('pedOptions');
+            const textarea = document.getElementById('pedTextarea');
+            const feedbackEl = document.getElementById('pedFeedback');
+            const continueBtn = document.getElementById('pedContinue');
+
+            // Populate header
+            document.getElementById('pedEmoji').textContent = trigger.emoji;
+            document.getElementById('pedBadge').textContent = trigger.badge;
+            document.getElementById('pedTitle').textContent = trigger.title;
+            document.getElementById('pedBody').innerHTML =
+                typeof trigger.body === 'function' ? trigger.body(state) : trigger.body;
+
+            // Reset UI state
+            feedbackEl.classList.add('hidden');
+            feedbackEl.innerHTML = '';
+            optDiv.innerHTML = '';
+            textarea.value = '';
+            textarea.style.borderColor = '';
+
+            // Remove any previous continue listener
+            if (_pedContinueHandler) {
+                continueBtn.removeEventListener('click', _pedContinueHandler);
+                _pedContinueHandler = null;
+            }
+
+            function doClose() {
+                modal.classList.add('hidden');
+                pedagogyActive = false;
+                // Sim stays paused — student explicitly presses Play to resume
+            }
+
+            if (trigger.type === 'mc') {
+                optDiv.classList.remove('hidden');
+                textarea.classList.add('hidden');
+                continueBtn.disabled = true;
+                continueBtn.textContent = 'Pilih jawaban dulu ➔';
+
+                optDiv.innerHTML = trigger.options.map((opt, i) =>
+                    `<button class="pedOpt w-full text-left px-4 py-3 rounded-lg border-2 border-slate-200 text-sm font-medium text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition-all" data-idx="${i}">
+                        <span class="inline-block font-bold text-blue-400 w-5 mr-1">${String.fromCharCode(65 + i)}.</span>${opt.text}
+                    </button>`
+                ).join('');
+
+                let answered = false;
+                optDiv.querySelectorAll('.pedOpt').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        if (answered) return;
+                        answered = true;
+                        const idx = +btn.dataset.idx;
+                        const isCorrect = trigger.options[idx].correct;
+
+                        // Style all options: highlight correct in green, chosen-wrong in red
+                        optDiv.querySelectorAll('.pedOpt').forEach((b, i2) => {
+                            b.disabled = true;
+                            if (trigger.options[i2].correct) {
+                                b.className = 'pedOpt w-full text-left px-4 py-3 rounded-lg border-2 border-green-400 bg-green-50 text-green-800 text-sm font-medium cursor-default';
+                            }
+                        });
+                        if (!isCorrect) {
+                            btn.className = 'pedOpt w-full text-left px-4 py-3 rounded-lg border-2 border-red-400 bg-red-50 text-red-700 text-sm font-medium cursor-default';
+                        }
+
+                        feedbackEl.innerHTML = isCorrect ? trigger.feedback.correct : trigger.feedback.wrong;
+                        feedbackEl.className = `p-3 rounded-lg text-sm mb-2 border leading-relaxed ${isCorrect
+                            ? 'bg-green-50 border-green-200 text-green-800'
+                            : 'bg-amber-50 border-amber-200 text-amber-800'}`;
+                        feedbackEl.classList.remove('hidden');
+                        continueBtn.disabled = false;
+                        continueBtn.textContent = 'Mengerti, lanjut ➔';
+
+                        runEvents.push({
+                            tick: currentTick, year: +(currentTick / 12).toFixed(2),
+                            type: 'pedagogy', triggerId: trigger.id,
+                            answer: trigger.options[idx].text, correct: isCorrect
+                        });
+                    });
+                });
+
+                _pedContinueHandler = doClose;
+                continueBtn.addEventListener('click', _pedContinueHandler);
+
+            } else {
+                // open text
+                optDiv.classList.add('hidden');
+                textarea.classList.remove('hidden');
+                textarea.placeholder = trigger.placeholder || 'Tulis pemikiranmu...';
+                continueBtn.disabled = false;
+                continueBtn.textContent = 'Lanjut ➔';
+
+                _pedContinueHandler = () => {
+                    const text = textarea.value.trim();
+                    if (!text) {
+                        textarea.style.borderColor = '#f87171';
+                        textarea.placeholder = 'Harap tulis sesuatu dulu.';
+                        return;
+                    }
+                    runEvents.push({
+                        tick: currentTick, year: +(currentTick / 12).toFixed(2),
+                        type: 'pedagogy', triggerId: trigger.id, answer: text
+                    });
+                    doClose();
+                };
+                continueBtn.addEventListener('click', _pedContinueHandler);
+            }
+
+            modal.classList.remove('hidden');
+        }
 
         function showReflectionModal() {
             document.getElementById('reflSummary').textContent = `Skenario: ${SCENARIOS[activeScenario].label} · ${currentTick} bulan`;
@@ -1861,16 +2373,349 @@
             localStorage.setItem('tunaTutorialSeen', 'true');
         }
 
-        document.getElementById('btnStartTour').addEventListener('click', startTutorial);
-        document.getElementById('btnSkipTour').addEventListener('click', () => {
-            document.getElementById('welcomeModal').classList.add('hidden');
-            localStorage.setItem('tunaTutorialSeen', 'true');
-        });
-        document.getElementById('tutNext').addEventListener('click', () => { currentStep++; showTutorialStep(); });
-        document.getElementById('tutSkip').addEventListener('click', endTutorial);
+        // Phase-1 scripted tutorial entry points (replaces the old passive tour)
+        document.getElementById('btnStartTour').addEventListener('click', startScriptedTutorial);
+        document.getElementById('btnSkipTour').addEventListener('click', skipTutorialToSandbox);
         document.getElementById('btnRestartTutorial').addEventListener('click', () => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
-            setTimeout(startTutorial, 300);
+            localStorage.removeItem('tunaTutorialSeen');
+            setTimeout(startScriptedTutorial, 250);
+        });
+
+        // ══════════════════════════════════════════════
+        // PHASE-1 SCRIPTED TUTORIAL ENGINE
+        // (Spotlight UX + Duolingo "click & teleport" sentence builder)
+        // ══════════════════════════════════════════════
+
+        // ── CONTENT (swap this whole block to change language; structure stays) ──
+        // answer[] = correct fill order. bank[] = pool shown to student (includes distractors).
+        // sentence[] = ordered segments: {t:'literal text'} or {b: blankIndex}.
+        const TUTORIAL_PUZZLES = [
+            {
+                badge: 'Bagian 1 · Ledakan Tangkapan',
+                spotlight: ['chartCard', 'popCard'],
+                question: 'Apa yang terjadi saat kita mengirim banyak kapal ke laut?',
+                answer: ['lebih banyak uang', 'sekarang', 'lebih sedikit ikan', 'nanti'],
+                bank: ['lebih banyak uang', 'lebih sedikit ikan', 'lebih banyak ikan', 'lebih sedikit uang', 'sekarang', 'nanti'],
+                sentence: [
+                    { t: 'Kita dapat ' }, { b: 0 }, { t: ' ' }, { b: 1 },
+                    { t: ', tapi akan ada ' }, { b: 2 }, { t: ' ' }, { b: 3 }, { t: '.' }
+                ]
+            },
+            {
+                badge: 'Bagian 2 · Laut Kosong',
+                spotlight: ['pnlCard'],
+                expandOpex: true,
+                question: 'Kenapa kita tiba-tiba merugi padahal kapalnya banyak?',
+                answer: ['kosong', 'bahan bakar', 'mahal', 'ikan'],
+                bank: ['kosong', 'bahan bakar', 'ikan', 'mahal', 'murah'],
+                sentence: [
+                    { t: 'Karena laut ' }, { b: 0 }, { t: ', kapal memboroskan ' }, { b: 1 },
+                    { t: ' yang ' }, { b: 2 }, { t: ' untuk mencari ' }, { b: 3 }, { t: '.' }
+                ]
+            }
+        ];
+
+        const TUTORIAL_REFLECTION = {
+            prompt: 'Kalau terlalu banyak kapal membuat laut kosong, dan terlalu sedikit kapal membuat kita miskin… menurutmu, apa cara terbaik mengelola pelabuhan ini?'
+        };
+
+        // Where the scripted run pauses to ask. Evaluated in strict order.
+        const TUTORIAL_CHECKPOINTS = [
+            { condition: s => s.tick >= 6 && s.popRatio < 0.9 },                 // income up, fish angling down
+            { condition: s => s.profit < 0 || s.popRatio <= 0.12 }              // ocean empties, profit turns red
+        ];
+
+        // ── Audio (tiny synth — no external files, demo-safe) ──
+        function _beep(freqs, dur, type) {
+            try {
+                _audioCtx = _audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+                let t = _audioCtx.currentTime;
+                freqs.forEach(f => {
+                    const o = _audioCtx.createOscillator(), g = _audioCtx.createGain();
+                    o.type = type || 'sine'; o.frequency.value = f;
+                    o.connect(g); g.connect(_audioCtx.destination);
+                    g.gain.setValueAtTime(0.0001, t);
+                    g.gain.exponentialRampToValueAtTime(0.16, t + 0.012);
+                    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+                    o.start(t); o.stop(t + dur); t += dur * 0.85;
+                });
+            } catch (e) { }
+        }
+        function playSuccess() { _beep([523.25, 659.25, 783.99], 0.13, 'sine'); }
+        function playError() { _beep([180, 150], 0.16, 'square'); }
+
+        // ── Lock/unlock the whole sandbox UI ──
+        function lockControls(lock) {
+            const sel = '.btnBuy, .btnSell, #btnPlay, #btnPause, #btnReset, #btnDemo, #scenarioSelect, #chkYearPause, #btnAdmin, #opexToggle, .info-btn, input[name="adminSalary"]';
+            document.querySelectorAll(sel).forEach(el => {
+                el.disabled = lock;
+                el.style.opacity = lock ? '0.45' : '';
+                el.style.pointerEvents = lock ? 'none' : '';
+            });
+        }
+
+        function setTutorialBanner(title, text) {
+            document.getElementById('scenarioBannerTitle').textContent = title;
+            document.getElementById('scenarioBannerText').textContent = text;
+            document.getElementById('scenarioBannerHint').textContent = '';
+        }
+
+        // ── Start: Phase 1 ──
+        function startScriptedTutorial() {
+            document.getElementById('welcomeModal').classList.add('hidden');
+            // user gesture → unlock audio
+            try {
+                _audioCtx = _audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+                if (_audioCtx.state === 'suspended') _audioCtx.resume();
+            } catch (e) { }
+
+            activeScenario = 'normal';
+            document.getElementById('scenarioSelect').value = 'normal';
+            resetSimulation();
+
+            tutorialMode = true;
+            tutorialCheckpointIdx = 0;
+            tutorialAttempts = [0, 0];
+
+            lockControls(true);
+            document.getElementById('chkYearPause').checked = false;
+
+            // The previous manager sent 10 ships out at once
+            fleet = 10; peakFleet = 10;
+            refreshShipButtonLabels();
+            updateUI(0, 0);
+
+            setTutorialBanner('▶ Mode Cerita — Manajer Sebelumnya',
+                'Manajer lama mengirim 10 kapal ke laut sekaligus. Perhatikan garis biru (populasi ikan) dan pendapatan saat waktu berjalan cepat…');
+
+            tickSpeedMs = 150;
+            isRunning = true;
+            document.getElementById('btnPlay').classList.add('hidden');
+            document.getElementById('btnPause').classList.add('hidden');
+            clearInterval(timer);
+            timer = setInterval(stepMonth, tickSpeedMs);
+        }
+
+        function skipTutorialToSandbox() {
+            document.getElementById('welcomeModal').classList.add('hidden');
+            tutorialMode = false;
+            lockControls(false);
+            localStorage.setItem('tunaTutorialSeen', 'true');
+        }
+
+        // ── Called from stepMonth each tick while tutorialMode is on ──
+        function checkTutorialCheckpoint() {
+            const cp = TUTORIAL_CHECKPOINTS[tutorialCheckpointIdx];
+            if (!cp) return;
+            const popRatio = params.K > 0 ? currentN / params.K : 0;
+            const state = { tick: currentTick, popRatio, fleet, profit: lastNetProfit, currentN };
+            if (cp.condition(state)) {
+                isRunning = false;
+                clearInterval(timer);
+                showSpotlightPuzzle(tutorialCheckpointIdx);
+            }
+        }
+
+        // ── Spotlight + puzzle ──
+        function showSpotlightPuzzle(idx) {
+            const pz = TUTORIAL_PUZZLES[idx];
+            if (pz.expandOpex) {
+                document.getElementById('opexBreakdown').classList.remove('hidden');
+                document.getElementById('opexCaret').style.transform = 'rotate(90deg)';
+            }
+            document.getElementById('spotlightOverlay').classList.remove('hidden');
+            document.querySelectorAll('.spotlight-pop').forEach(e => e.classList.remove('spotlight-pop'));
+            pz.spotlight.forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('spotlight-pop'); });
+            const primary = document.getElementById(pz.spotlight[0]);
+            if (primary) setTimeout(() => primary.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+            renderSentencePuzzle(idx);
+            document.getElementById('puzzleSheet').classList.remove('hidden');
+        }
+
+        function hideSpotlight() {
+            document.getElementById('spotlightOverlay').classList.add('hidden');
+            document.getElementById('puzzleSheet').classList.add('hidden');
+            document.querySelectorAll('.spotlight-pop').forEach(e => e.classList.remove('spotlight-pop'));
+        }
+
+        function shuffleInPlace(a) {
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+        }
+
+        function renderSentencePuzzle(idx) {
+            const pz = TUTORIAL_PUZZLES[idx];
+            document.getElementById('puzzleBadge').textContent = pz.badge;
+            document.getElementById('puzzleQuestion').textContent = pz.question;
+            const fb = document.getElementById('puzzleFeedback');
+            fb.classList.add('hidden'); fb.textContent = '';
+            const bank = pz.bank.map((t, i) => ({ id: 'w' + i, text: t, used: false }));
+            shuffleInPlace(bank);
+            const blanks = pz.answer.map(a => ({ answer: a, fillId: null }));
+            _puzzleState = { idx, pz, bank, blanks };
+            renderTrack();
+            renderBank();
+            updateCheckBtn();
+        }
+
+        function renderTrack() {
+            const { pz, bank, blanks } = _puzzleState;
+            const track = document.getElementById('sentenceTrack');
+            track.innerHTML = pz.sentence.map(seg => {
+                if (seg.t !== undefined) return `<span>${seg.t}</span>`;
+                const b = blanks[seg.b];
+                if (b.fillId) {
+                    const w = bank.find(x => x.id === b.fillId);
+                    return `<button class="filled-slot pop-in inline-flex items-center px-3 py-1 rounded-lg bg-blue-100 border-2 border-blue-300 text-blue-800 font-semibold align-middle" data-blank="${seg.b}">${w.text}</button>`;
+                }
+                return `<span class="blank-slot inline-block min-w-[78px] h-[30px] align-middle border-b-2 border-slate-300 rounded-md bg-white" data-blank="${seg.b}">&nbsp;</span>`;
+            }).join('');
+            track.querySelectorAll('.filled-slot').forEach(el => {
+                el.addEventListener('click', () => {
+                    const bi = +el.dataset.blank;
+                    const fid = _puzzleState.blanks[bi].fillId;
+                    _puzzleState.blanks[bi].fillId = null;
+                    const w = _puzzleState.bank.find(x => x.id === fid); if (w) w.used = false;
+                    renderTrack(); renderBank(); updateCheckBtn();
+                });
+            });
+        }
+
+        function renderBank() {
+            const { bank } = _puzzleState;
+            const bankEl = document.getElementById('wordBank');
+            bankEl.innerHTML = bank.filter(w => !w.used).map(w =>
+                `<button class="word-pill px-3 py-2 rounded-xl bg-white border-2 border-slate-200 shadow-sm text-slate-700 font-semibold text-sm hover:border-blue-400 hover:bg-blue-50" data-id="${w.id}">${w.text}</button>`
+            ).join('');
+            bankEl.querySelectorAll('.word-pill').forEach(el => {
+                el.addEventListener('click', () => {
+                    const slot = _puzzleState.blanks.find(b => !b.fillId);
+                    if (!slot) return;
+                    slot.fillId = el.dataset.id;
+                    const w = _puzzleState.bank.find(x => x.id === el.dataset.id); if (w) w.used = true;
+                    renderTrack(); renderBank(); updateCheckBtn();
+                });
+            });
+        }
+
+        function updateCheckBtn() {
+            document.getElementById('puzzleCheck').disabled = !_puzzleState.blanks.every(b => b.fillId);
+        }
+
+        // Validation (Check button) — bound once
+        document.getElementById('puzzleCheck').addEventListener('click', () => {
+            const st = _puzzleState; if (!st) return;
+            const { idx, bank, blanks } = st;
+            tutorialAttempts[idx] = (tutorialAttempts[idx] || 0) + 1;
+            const wrong = [];
+            blanks.forEach((b, i) => {
+                const w = bank.find(x => x.id === b.fillId);
+                if (!w || w.text !== b.answer) wrong.push(i);
+            });
+            const fb = document.getElementById('puzzleFeedback');
+            if (wrong.length === 0) {
+                playSuccess();
+                fb.textContent = '✓ Tepat sekali!';
+                fb.className = 'text-sm font-bold text-emerald-600 mb-3';
+                fb.classList.remove('hidden');
+                document.querySelectorAll('#sentenceTrack .filled-slot').forEach(el => {
+                    el.classList.remove('bg-blue-100', 'border-blue-300', 'text-blue-800');
+                    el.classList.add('bg-emerald-100', 'border-emerald-400', 'text-emerald-700', 'success-pulse');
+                });
+                document.getElementById('puzzleCheck').disabled = true;
+                onPuzzleSolved(idx);
+            } else {
+                playError();
+                fb.textContent = '× Belum tepat — coba lagi.';
+                fb.className = 'text-sm font-bold text-red-500 mb-3';
+                fb.classList.remove('hidden');
+                wrong.forEach(bi => {
+                    const el = document.querySelector(`#sentenceTrack .filled-slot[data-blank="${bi}"]`);
+                    if (el) {
+                        el.classList.remove('bg-blue-100', 'border-blue-300', 'text-blue-800');
+                        el.classList.add('bg-red-100', 'border-red-300', 'text-red-600', 'shake');
+                    }
+                });
+                setTimeout(() => {
+                    wrong.forEach(bi => {
+                        const fid = _puzzleState.blanks[bi].fillId;
+                        _puzzleState.blanks[bi].fillId = null;
+                        const w = _puzzleState.bank.find(x => x.id === fid); if (w) w.used = false;
+                    });
+                    renderTrack(); renderBank(); updateCheckBtn();
+                    fb.classList.add('hidden');
+                }, 750);
+            }
+        });
+
+        function onPuzzleSolved(idx) {
+            runEvents.push({
+                tick: currentTick, year: +(currentTick / 12).toFixed(2),
+                type: 'tutorial', puzzle: idx, attempts: tutorialAttempts[idx], correct: true
+            });
+            setTimeout(() => {
+                hideSpotlight();
+                if (idx === 0) {
+                    tutorialCheckpointIdx = 1;
+                    setTutorialBanner('▶ Mode Cerita — Beberapa Waktu Kemudian',
+                        'Kapal terus melaut tanpa henti. Perhatikan panel Laba–Rugi saat populasi ikan menipis…');
+                    tickSpeedMs = 150;
+                    isRunning = true;
+                    clearInterval(timer);
+                    timer = setInterval(stepMonth, tickSpeedMs);
+                } else {
+                    showTutorMentor();
+                }
+            }, 1150);
+        }
+
+        // ── Section 4: open-ended reflection ──
+        function showTutorMentor() {
+            document.getElementById('mentorPrompt').textContent = TUTORIAL_REFLECTION.prompt;
+            const ta = document.getElementById('mentorTextarea');
+            ta.value = ''; ta.style.borderColor = '';
+            document.getElementById('tutorMentorModal').classList.remove('hidden');
+        }
+
+        document.getElementById('mentorSubmit').addEventListener('click', () => {
+            const ta = document.getElementById('mentorTextarea');
+            const txt = ta.value.trim();
+            if (!txt) {
+                ta.style.borderColor = '#f87171';
+                ta.placeholder = 'Tulis sedikit pendapatmu dulu ya.';
+                return;
+            }
+            runEvents.push({
+                tick: currentTick, year: +(currentTick / 12).toFixed(2),
+                type: 'tutorial_reflection', answer: txt
+            });
+            document.getElementById('tutorMentorModal').classList.add('hidden');
+            completeTutorial();
+        });
+
+        // ── Section 5: hand control to the student (sandbox unlocked) ──
+        function completeTutorial() {
+            tutorialMode = false;
+            tutorialCheckpointIdx = 0;
+            hideSpotlight();
+            clearInterval(timer); isRunning = false;
+            lockControls(false);
+            if (!unlockedStages.includes('normal')) { unlockedStages.push('normal'); saveStageProgress(); }
+            activeScenario = 'normal';
+            document.getElementById('scenarioSelect').value = 'normal';
+            resetSimulation();      // fresh clean start: 4 ships, full population
+            renderScenarioBanner(); // restore the Normal banner
+            document.getElementById('chkYearPause').checked = true;
+            localStorage.setItem('tunaTutorialSeen', 'true');
+            document.getElementById('tutorCompleteModal').classList.remove('hidden');
+        }
+
+        document.getElementById('tutorCompleteBtn').addEventListener('click', () => {
+            document.getElementById('tutorCompleteModal').classList.add('hidden');
         });
 
         // ── INIT ──
