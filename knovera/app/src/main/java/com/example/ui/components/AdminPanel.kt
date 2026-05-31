@@ -69,7 +69,7 @@ fun AdminPanel(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.someOfSupaDoneTextBar(), // Custom alignment
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -281,5 +281,3 @@ fun AdminInput(
     }
 }
 
-// Custom Arrangement helper for formatting compatibility
-private fun Arrangement.someOfSupaDoneTextBar() = Arrangement.SpaceBetween
