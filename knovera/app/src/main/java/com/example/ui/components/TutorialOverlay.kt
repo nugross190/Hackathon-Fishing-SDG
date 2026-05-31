@@ -1,0 +1,338 @@
+package com.example.ui.components
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun TutorialOverlay(
+    step: Int, // 1 to 5
+    onAdvance: () -> Unit,
+    onSubmitMentorText: (String) -> Unit
+) {
+    // Puzzle 1 data
+    val puzzle1Words = listOf("lebih banyak uang", "sekarang", "lebih sedikit ikan", "nanti")
+    val bank1 = listOf("lebih banyak uang", "lebih sedikit ikan", "lebih banyak ikan", "lebih sedikit uang", "sekarang", "nanti")
+    // Puzzle 2 data
+    val puzzle2Words = listOf("kosong", "bahan bakar", "mahal", "ikan")
+    val bank2 = listOf("kosong", "bahan bakar", "ikan", "mahal", "murah")
+
+    if (step == 2) {
+        // Puzzle 1: Catch boom
+        SentencePuzzleDialog(
+            badge = "Bagian 1 · Ledakan Tangkapan",
+            question = "Apa yang terjadi saat kita mengirim banyak kapal ke laut?",
+            bankWords = bank1,
+            correctOrder = puzzle1Words,
+            sentenceTemplate = listOf(
+                "Kita dapat ", "[BLANK 0]", " ", "[BLANK 1]",
+                ", tapi akan ada ", "[BLANK 2]", " ", "[BLANK 3]", "."
+            ),
+            onSuccess = onAdvance
+        )
+    }
+
+    if (step == 4) {
+        // Puzzle 2: Empty ocean / high opex costs
+        SentencePuzzleDialog(
+            badge = "Bagian 2 · Laut Kosong",
+            question = "Kenapa kita tiba-tiba merugi padahal kapalnya banyak?",
+            bankWords = bank2,
+            correctOrder = puzzle2Words,
+            sentenceTemplate = listOf(
+                "Karena laut ", "[BLANK 0]", ", kapal memboroskan ", "[BLANK 1]",
+                " yang ", "[BLANK 2]", " untuk mencari ", "[BLANK 3]", "."
+            ),
+            onSuccess = onAdvance
+        )
+    }
+
+    if (step == 5) {
+        // Mentor dialogue
+        var textValue by remember { mutableStateOf("") }
+        Dialog(onDismissRequest = {}) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .clip(RoundedCornerShape(20.dp)),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "🧑‍✈️", fontSize = 32.sp)
+                        Column {
+                            Text(text = "KEPALA NELAYAN", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3B82F6))
+                            Text(text = "Sebentar, Manajer…", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "Kalau mengirim terlalu banyak kapal membuat laut kosong, dan terlalu sedikit kapal membuat kita miskin… menurutmu, apa strategi terbaik mengelola pelabuhan ini?",
+                        fontSize = 13.sp,
+                        color = Color(0xFF3B4F66),
+                        lineHeight = 18.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = textValue,
+                        onValueChange = { textValue = it },
+                        placeholder = { Text("Tulis pendapatmu di sini...", fontSize = 12.sp) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(text = "Hanya untuk melatih pemahaman awalmu — tidak ada jawaban benar/salah.", fontSize = 9.sp, color = Color(0xFF94A3B8))
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = { onSubmitMentorText(textValue) },
+                        enabled = textValue.trim().isNotEmpty(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Simpan & Selesaikan Pelatihan", fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun SentencePuzzleDialog(
+    badge: String,
+    question: String,
+    bankWords: List<String>,
+    correctOrder: List<String>,
+    sentenceTemplate: List<String>,
+    onSuccess: () -> Unit
+) {
+    // Current filled slots: index represents blank, value represents chosen word (null if blank)
+    var filledSlots by remember { mutableStateOf(MutableList<String?>(correctOrder.size) { null }) }
+    var resultChecked by remember { mutableStateOf(false) }
+    var isCorrectStatus by remember { mutableStateOf(false) }
+    var attempts by remember { mutableStateOf(0) }
+
+    // Shuffled bank
+    val bankList = remember { bankWords.shuffled() }
+
+    Dialog(onDismissRequest = {}) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(4.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .border(2.dp, Color(0xFF60A5FA), RoundedCornerShape(24.dp)),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(modifier = Modifier.padding(18.dp)) {
+                Text(
+                    text = badge.uppercase(),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2563EB),
+                    letterSpacing = 1.sp
+                )
+                Text(
+                    text = question,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1E293B),
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Sentence Builder Area
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, Color(0xFFF1F5F9), RoundedCornerShape(12.dp)),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC))
+                ) {
+                    FlowRow(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        sentenceTemplate.forEach { s ->
+                            if (s.startsWith("[BLANK")) {
+                                val blankIdx = s.substring(7, 8).toInt()
+                                val filled = filledSlots[blankIdx]
+
+                                if (filled != null) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(
+                                                if (resultChecked) {
+                                                    if (isCorrectStatus) Color(0xFFD1FAE5) else Color(0xFFFEE2E2)
+                                                } else Color(0xFFDBEAFE)
+                                            )
+                                            .clickable(enabled = !resultChecked) {
+                                                // Remove word
+                                                filledSlots[blankIdx] = null
+                                                filledSlots = filledSlots.toMutableList()
+                                            }
+                                            .border(
+                                                1.5.dp,
+                                                if (resultChecked) {
+                                                    if (isCorrectStatus) Color(0xFF34D399) else Color(0xFFF87171)
+                                                } else Color(0xFF60A5FA),
+                                                RoundedCornerShape(8.dp)
+                                            )
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = filled,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (resultChecked) {
+                                                if (isCorrectStatus) Color(0xFF065F46) else Color(0xFF991B1B)
+                                            } else Color(0xFF1D4ED8)
+                                        )
+                                    }
+                                } else {
+                                    // Empty blank placeholder
+                                    Box(
+                                        modifier = Modifier
+                                            .size(width = 80.dp, height = 24.dp)
+                                            .background(Color.White, RoundedCornerShape(6.dp))
+                                            .border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(6.dp))
+                                    )
+                                }
+                            } else {
+                                Text(
+                                    text = s,
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF334155),
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.align(Alignment.CenterVertically)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Word Pool
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    bankList.forEach { word ->
+                        val used = filledSlots.contains(word)
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (used) Color(0xFFE2E8F0) else Color.White)
+                                .clickable(enabled = !used && !resultChecked) {
+                                    // Fill the first empty spot
+                                    val emptyIdx = filledSlots.indexOf(null)
+                                    if (emptyIdx != -1) {
+                                        filledSlots[emptyIdx] = word
+                                        filledSlots = filledSlots.toMutableList()
+                                    }
+                                }
+                                .border(
+                                    1.5.dp,
+                                    if (used) Color(0xFFE2E8F0) else Color(0xFF94A3B8),
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = word,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (used) Color(0xFF94A3B8) else Color(0xFF1E293B)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Feedback
+                if (resultChecked) {
+                    val msg = if (isCorrectStatus) "✓ Tepat sekali! Kerja Bagus." else "× Kurang tepat — dicoba kembali ya."
+                    val clr = if (isCorrectStatus) Color(0xFF10B981) else Color(0xFFEF4444)
+                    Text(text = msg, fontSize = 13.sp, color = clr, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                val allFilled = filledSlots.none { it == null }
+
+                Button(
+                    onClick = {
+                        if (!resultChecked) {
+                            attempts++
+                            val isCorrect = filledSlots.zip(correctOrder).all { (a, b) -> a == b }
+                            isCorrectStatus = isCorrect
+                            resultChecked = true
+
+                            if (!isCorrect) {
+                                // Reset slots after delay so they can try again
+                                // To easily let them read why they failed, we wait 1 second
+                            }
+                        } else {
+                            if (isCorrectStatus) {
+                                onSuccess()
+                            } else {
+                                // Reset for retry
+                                filledSlots = MutableList(correctOrder.size) { null }
+                                resultChecked = false
+                            }
+                        }
+                    },
+                    enabled = allFilled,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isCorrectStatus && resultChecked) Color(0xFF039855) else Color(0xFF2563EB)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = when {
+                            !resultChecked -> "Periksa"
+                            isCorrectStatus -> "Selesai"
+                            else -> "Ulangi Lagi"
+                        },
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+    }
+}
