@@ -101,21 +101,22 @@ class SimulationViewModel(application: Application) : AndroidViewModel(applicati
     private var simJob: Job? = null
     private var tickSpeedMs: Long = 300L
 
-    // Constants matches HTML exactly
+    // Constants matches HTML exactly. The tuning ones are var so the admin
+    // panel can override them at runtime via applyAdminOverrides().
     val J_FISHERMEN = 1500
     val UMR_MONTHLY_DEFAULT = 2500000.0
     val J_ADMIN = 20
     val ADMIN_SALARY_DEFAULT = 2500000.0
-    val MGMT_CUT = 0.07
+    var MGMT_CUT = 0.07
     val MAX_FLEET = 200
-    val SHIP_COST = 100000000.0
-    val SHIP_SELL = 40000000.0
-    val SHIP_MAINT_ANNUAL = 20000000.0
-    val HARBOR_FEE_PER_SHIP_MONTHLY = 7841667.0
-    val q = 0.00008
-    val EFFORT_PER_SHIP_ANNUAL = 1000.0
+    var SHIP_COST = 100000000.0
+    var SHIP_SELL = 40000000.0
+    var SHIP_MAINT_ANNUAL = 20000000.0
+    var HARBOR_FEE_PER_SHIP_MONTHLY = 7841667.0
+    var q = 0.00008
+    var EFFORT_PER_SHIP_ANNUAL = 1000.0
     val SUPPLIES_RATE = 240000.0
-    val delta = 0.05
+    var delta = 0.05
     val maxTicks = 120
 
     private val firedTriggers = mutableSetOf<String>()
@@ -272,9 +273,18 @@ class SimulationViewModel(application: Application) : AndroidViewModel(applicati
         r: Double, K: Double, q_override: Double, P: Double, c: Double,
         initFleet: Int, initBudget: Double, startNRatio: Double,
         harborFee: Double, shipCost: Double, shipSell: Double, shipMaint: Double, effortPerShip: Double,
+        mgmtCut: Double, deltaOverride: Double,
         salaryRatio: Double
     ) {
         simJob?.cancel()
+        q = q_override
+        HARBOR_FEE_PER_SHIP_MONTHLY = harborFee
+        SHIP_COST = shipCost
+        SHIP_SELL = shipSell
+        SHIP_MAINT_ANNUAL = shipMaint
+        EFFORT_PER_SHIP_ANNUAL = effortPerShip
+        MGMT_CUT = mgmtCut
+        delta = deltaOverride
         _uiState.update { state ->
             val finalStartN = K * startNRatio
             state.copy(
@@ -291,7 +301,7 @@ class SimulationViewModel(application: Application) : AndroidViewModel(applicati
                 isRunning = false,
                 isYearEndPaused = false,
                 adminSalaryRatio = salaryRatio,
-                
+
                 popHistory = listOf(finalStartN),
                 fisherWageHistory = listOf(0.0),
                 adminWageHistory = listOf(0.0),
@@ -781,6 +791,19 @@ class SimulationViewModel(application: Application) : AndroidViewModel(applicati
             repository.clearAllRuns()
             repository.resetProgress()
         }
+        resetTuningDefaults()
         resetSimulation()
+    }
+
+    private fun resetTuningDefaults() {
+        q = 0.00008
+        delta = 0.05
+        MGMT_CUT = 0.07
+        SHIP_COST = 100000000.0
+        SHIP_SELL = 40000000.0
+        SHIP_MAINT_ANNUAL = 20000000.0
+        HARBOR_FEE_PER_SHIP_MONTHLY = 7841667.0
+        EFFORT_PER_SHIP_ANNUAL = 1000.0
+        _uiState.update { it.copy(overrideActive = false) }
     }
 }

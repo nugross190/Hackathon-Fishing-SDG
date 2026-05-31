@@ -163,6 +163,8 @@ fun AdminPanel(
                                 shipSell = shipSellVal.toDouble(),
                                 shipMaint = shipMaintVal.toDouble(),
                                 effortPerShip = effortPerShipVal.toDouble(),
+                                mgmtCut = mgmtCutVal.toDouble(),
+                                deltaOverride = deltaVal.toDouble(),
                                 salaryRatio = state.adminSalaryRatio
                             )
                             statusMessage = "✓ Applied Overrides!"
