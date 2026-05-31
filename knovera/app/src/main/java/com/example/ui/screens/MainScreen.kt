@@ -1193,10 +1193,17 @@ fun HistoryRowCard(
                     val eventsList = remember(run.eventsJson) {
                         try {
                             val arr = JSONArray(run.eventsJson)
-                            List(arr.length()) { i ->
-                                val obj = arr.getJSONObject(i)
-                                "Bulan ${obj.getInt("tick")}: ${obj.getString("action").uppercase()} ${obj.getInt("qty")} perahu (Sisa: ${obj.getInt("fleetAfter")})"
+                            val out = mutableListOf<String>()
+                            for (i in 0 until arr.length()) {
+                                val obj = arr.optJSONObject(i) ?: continue
+                                val action = obj.optString("action", "")
+                                if (action == "buy" || action == "sell") {
+                                    out.add(
+                                        "Bulan ${obj.optInt("tick")}: ${action.uppercase()} ${obj.optInt("qty")} perahu (Sisa: ${obj.optInt("fleetAfter")})"
+                                    )
+                                }
                             }
+                            out
                         } catch (e: Exception) {
                             emptyList()
                         }

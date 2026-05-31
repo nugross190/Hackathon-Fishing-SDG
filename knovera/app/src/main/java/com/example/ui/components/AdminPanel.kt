@@ -69,7 +69,7 @@ fun AdminPanel(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.someOfSupaDoneTextBar(), // Custom alignment
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -163,6 +163,8 @@ fun AdminPanel(
                                 shipSell = shipSellVal.toDouble(),
                                 shipMaint = shipMaintVal.toDouble(),
                                 effortPerShip = effortPerShipVal.toDouble(),
+                                mgmtCut = mgmtCutVal.toDouble(),
+                                deltaOverride = deltaVal.toDouble(),
                                 salaryRatio = state.adminSalaryRatio
                             )
                             statusMessage = "✓ Applied Overrides!"
@@ -281,5 +283,3 @@ fun AdminInput(
     }
 }
 
-// Custom Arrangement helper for formatting compatibility
-private fun Arrangement.someOfSupaDoneTextBar() = Arrangement.SpaceBetween
